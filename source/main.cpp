@@ -3,6 +3,9 @@
 #include <QQmlApplicationEngine>
 #include <QSurfaceFormat>
 
+#include <QDirIterator>
+#include <iostream>
+
 #include "graphics_engine/graphics_engine.hpp"
 
 int main(int argc, char *argv[]) {

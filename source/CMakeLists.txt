@@ -13,18 +13,18 @@ find_package(Qt5 REQUIRED Core Gui Quick Widgets Multimedia )
 ################################################################################
 add_subdirectory(graphics_engine)
 
-#qt5_add_resources(tux_match_app_rcc ${tux_match_app_qml_qrc}
-#    ${CMAKE_SOURCE_DIR}/resources/3D_models/3D_models.qrc
-#    ${CMAKE_SOURCE_DIR}/resources/debug_samples/debug_samples.qrc)
+qt5_add_resources(tux_match_app_rcc ${tux_match_app_qml_qrc}
+    # ${CMAKE_SOURCE_DIR}/resources/3D_models/3D_models.qrc
+    ${CMAKE_SOURCE_DIR}/resources/app_resources.qrc)
 
 set( tux_match_app_SOURCES   main.cpp ) #window.cpp)
 #set( tux_match_app_HEADERS   window.hpp )
 include_directories(AFTER SYSTEM src ${CMAKE_BINARY_DIR})
 
 if(ANDROID)
-    add_library(tux_match_app SHARED ${tux_match_app_SOURCES} ${tux_match_app_HEADERS})
+    add_library(tux_match_app SHARED ${tux_match_app_SOURCES} ${tux_match_app_HEADERS} ${tux_match_app_rcc})
 else()
-    add_executable(tux_match_app ${tux_match_app_SOURCES} ${tux_match_app_HEADERS})
+    add_executable(tux_match_app ${tux_match_app_SOURCES} ${tux_match_app_HEADERS} ${tux_match_app_rcc})
 endif()
 target_link_libraries(tux_match_app graphics_engine Qt5::Core Qt5::Gui Qt5::Quick Qt5::Widgets Qt5::Multimedia )
 

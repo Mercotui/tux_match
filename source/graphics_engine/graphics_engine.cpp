@@ -4,6 +4,7 @@
 
 #include <math.h>
 #include <QOpenGLExtraFunctions>
+#include <QOpenGLTexture>
 #include <QTemporaryFile>
 #include <QVector2D>
 #include <QVector3D>
@@ -13,7 +14,9 @@
 #endif
 
 graphics_engine::graphics_engine(QWidget *parent)
-    : QOpenGLWidget(parent), _opengl_mutex(QMutex::Recursive) {
+    : QOpenGLWidget(parent),
+      _is_initialized(false),
+      _opengl_mutex(QMutex::Recursive) {
   Q_INIT_RESOURCE(GL_shaders);
 }
 
@@ -37,28 +40,26 @@ void graphics_engine::initializeGL() {
   // glEnable (GL_CULL_FACE);
   glEnable(GL_TEXTURE_2D);
 
-  glGenTextures(1, &_texture_background);
-  glBindTexture(GL_TEXTURE_2D, _texture_background);
-  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glBindTexture(GL_TEXTURE_2D, 0);
-
   // generate a buffer to bind to textures
   glGenFramebuffers(1, &_readback_buffer);
 
-  // compile and link shaders
+  load_textures();
   compile_shaders();
-
-  // generate vertex array buffers
   generate_buffers();
 
   // setup projection matrix
   _mat_projection.ortho(-2.0f, +2.0f, -2.0f, +2.0f, 1.0f, 25.0f);
 
+  _is_initialized = true;
   emit initialized();
   _opengl_mutex.unlock();
+}
+
+void graphics_engine::load_textures() {
+  _background_texture = new QOpenGLTexture(QImage(":/images/tux_square.png"));
+  _background_texture->setMinificationFilter(QOpenGLTexture::Nearest);
+  _background_texture->setMagnificationFilter(QOpenGLTexture::Linear);
+  _background_texture->setWrapMode(QOpenGLTexture::Repeat);
 }
 
 void graphics_engine::generate_buffers() {
@@ -102,10 +103,9 @@ void graphics_engine::generate_buffers() {
 
     // bind texture
     int tex_uniform = _program_background.uniformLocation("u_tex_background");
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, _texture_background);
+    _background_texture->bind(GL_TEXTURE0);
     glUniform1i(tex_uniform, 0);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    _background_texture->release();
   }
 
   // setup object vao
@@ -201,27 +201,29 @@ void graphics_engine::resizeGL(int width, int height) {
 }
 
 void graphics_engine::paintGL() {
-  _opengl_mutex.lock();
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  if (_is_initialized) {
+    _opengl_mutex.lock();
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  // draw background
-  _program_background.bind();
-  _program_background.setUniformValue("is_GLRED", _is_grayscale);
-  draw_background();
+    // draw background
+    _program_background.bind();
+    _program_background.setUniformValue("is_GLRED", _is_grayscale);
+    draw_background();
 
-  // draw object
-  QMatrix4x4 mat_modelview;
-  mat_modelview.translate(_x_pos, _y_pos, -10.0);
-  mat_modelview.scale(_scale_factor);
-  mat_modelview.rotate(_x_rot, 1, 0, 0);
-  mat_modelview.rotate(_y_rot, 0, 1, 0);
-  mat_modelview.rotate(_z_rot, 0, 0, 1);
-  mat_modelview = _mat_projection * mat_modelview;
+    // draw object
+    // QMatrix4x4 mat_modelview;
+    // mat_modelview.translate(_x_pos, _y_pos, -10.0);
+    // mat_modelview.scale(_scale_factor);
+    // mat_modelview.rotate(_x_rot, 1, 0, 0);
+    // mat_modelview.rotate(_y_rot, 0, 1, 0);
+    // mat_modelview.rotate(_z_rot, 0, 0, 1);
+    // mat_modelview = _mat_projection * mat_modelview;
 
-  _program_object.bind();
-  _program_object.setUniformValue("view_matrix", mat_modelview);
-  draw_playfield();
-  _opengl_mutex.unlock();
+    // _program_object.bind();
+    // _program_object.setUniformValue("view_matrix", mat_modelview);
+    // draw_playfield();
+    _opengl_mutex.unlock();
+  }
 }
 
 void graphics_engine::draw_playfield() {
@@ -237,9 +239,9 @@ void graphics_engine::draw_background() {
   _opengl_mutex.lock();
   // draw the 2 triangles that form the background
   glBindVertexArray(_background_vao);
-  glBindTexture(GL_TEXTURE_2D, _current_handle);
+  _background_texture->bind(GL_TEXTURE0);
   glDrawArrays(GL_TRIANGLES, 0, 6);
-  glBindTexture(GL_TEXTURE_2D, 0);
+  _background_texture->release();
   glBindVertexArray(0);
   _opengl_mutex.unlock();
 }

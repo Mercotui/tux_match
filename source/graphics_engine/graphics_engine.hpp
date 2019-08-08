@@ -6,6 +6,7 @@
 #include <QMutex>
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLShaderProgram>
+#include <QOpenGLTexture>
 #include <QOpenGLWidget>
 #include <QString>
 #include <QVector2D>
@@ -14,7 +15,7 @@
 class graphics_engine final : public QOpenGLWidget,
                               protected QOpenGLExtraFunctions {
   Q_OBJECT
-public:
+ public:
   graphics_engine(QWidget *parent = 0);
   ~graphics_engine();
 
@@ -25,29 +26,24 @@ public:
   QSize minimumSizeHint() const;
   QSize sizeHint() const;
 
-public slots:
+ public slots:
 
-signals:
+ signals:
   void initialized();
 
-private:
+ private:
+  void load_textures();
   void generate_buffers();
   void compile_shaders();
   void draw_playfield();
   void draw_background();
 
+  bool _is_initialized;
   int _view_width;
   int _view_height;
-  float _scale_factor;
-  float _x_pos;
-  float _y_pos;
-  float _x_rot;
-  float _y_rot;
-  float _z_rot;
   QMutex _opengl_mutex;
   QMatrix4x4 _mat_projection;
   GLuint _is_grayscale;
-  GLuint _texture_background;
   GLuint _current_handle;
   GLuint _last_handle;
   GLuint _readback_buffer;
@@ -56,8 +52,9 @@ private:
   GLuint _background_vbo;
   GLuint _object_vbo;
   GLuint _vertex_count;
+  QOpenGLTexture *_background_texture;
   QOpenGLShaderProgram _program_background;
   QOpenGLShaderProgram _program_object;
 };
 
-#endif // GRAPHICS_ENGINE_HPP
+#endif  // GRAPHICS_ENGINE_HPP
