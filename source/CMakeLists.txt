@@ -50,11 +50,8 @@ if(ANDROID)
         tux_match_app
         NAME "tux_match"
         # VERSION_CODE is single number
-        # Concatenate the version to single number
-        # E.g.
-        # 1.0.0 => 100
         # 10.25.1 => 10251
-        VERSION_CODE "${VERSION_MAJOR}${VERSION_MINOR}${VERSION_PATCH}"
+        VERSION_CODE "100"
         PACKAGE_NAME "org.derpicated.tux_match"
     )
 endif() # ANDROID
@@ -64,7 +61,7 @@ target_compile_options(tux_match_app PRIVATE -std=c++11 -Wall -Wextra)
 add_custom_command(
         TARGET tux_match_app PRE_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
-                ${CMAKE_SOURCE_DIR}/res
+                ${CMAKE_SOURCE_DIR}/resources/android_res
                 ${CMAKE_CURRENT_BINARY_DIR}/package/res)
 
 if(EXISTS "${CMAKE_CURRENT_BINARY_DIR}/package/AndroidManifest.xml")

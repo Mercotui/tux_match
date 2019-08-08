@@ -15,8 +15,8 @@ if(ANDROID)
 else(ANDROID)
 endif(ANDROID)
 
-include_directories(src)
-add_subdirectory(src)
+include_directories(source)
+add_subdirectory(source)
 
 if(TESTS)
     add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --force-new-ctest-process --output-on-failure)
