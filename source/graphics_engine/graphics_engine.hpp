@@ -10,6 +10,7 @@
 #include <QOpenGLWidget>
 #include <QPoint>
 #include <QString>
+#include <QTimer>
 #include <QVector2D>
 #include <QVector3D>
 
@@ -35,11 +36,20 @@ class GraphicsEngine final : public QOpenGLWidget,
   QSize sizeHint() const;
 
  public slots:
+  void execute_frame();
+
+ protected:
+  void mousePressEvent(QMouseEvent *event) override;
+  void mouseMoveEvent(QMouseEvent *event) override;
+  void mouseReleaseEvent(QMouseEvent *event) override;
 
  signals:
   void initialized();
 
  private:
+  float remap(float min_old, float max_old, float min_new, float max_new,
+              float value);
+  QPointF coords_window_to_game(QPoint mouse_pos);
   void load_textures();
   void generate_buffers();
   void compile_shaders();
@@ -52,6 +62,7 @@ class GraphicsEngine final : public QOpenGLWidget,
   int _game_width;
   int _game_height;
 
+  QTimer _frame_timer;
   bool _is_initialized;
   int _view_width;
   int _view_height;

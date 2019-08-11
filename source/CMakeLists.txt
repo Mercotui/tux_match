@@ -56,7 +56,7 @@ if(ANDROID)
         PACKAGE_NAME "org.derpicated.tux_match"
     )
 endif() # ANDROID
-target_compile_options(tux_match_app PRIVATE -std=c++11 -Wall -Wextra)
+target_compile_options(tux_match_app PRIVATE -std=c++17 -Wall -Wextra)
 
 # copy over resource folder
 add_custom_command(

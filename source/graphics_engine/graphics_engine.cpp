@@ -3,6 +3,7 @@
 #include "graphics_engine.hpp"
 
 #include <math.h>
+#include <QMouseEvent>
 #include <QMutexLocker>
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLTexture>
@@ -10,16 +11,28 @@
 #include <QVector2D>
 #include <QVector3D>
 
+#include <iostream>
+
 #ifdef ANDROID
 #include <GLES3/gl3.h>
 #endif
 
 GraphicsEngine::GraphicsEngine(QWidget *parent)
     : QOpenGLWidget(parent),
+      _game_logic(),
+      _game_width(1),
+      _game_height(1),
+      _frame_timer(),
       _is_initialized(false),
+      _view_width(1),
+      _view_height(1),
       _opengl_mutex(QMutex::Recursive),
       _vertex_count(0) {
   Q_INIT_RESOURCE(GL_shaders);
+
+  _frame_timer.setInterval(20);
+  connect(&_frame_timer, SIGNAL(timeout()), this, SLOT(execute_frame()));
+  _frame_timer.start();
 }
 
 GraphicsEngine::~GraphicsEngine() { ; }
@@ -27,6 +40,49 @@ GraphicsEngine::~GraphicsEngine() { ; }
 QSize GraphicsEngine::minimumSizeHint() const { return QSize(600, 600); }
 
 QSize GraphicsEngine::sizeHint() const { return QSize(600, 600); }
+
+void GraphicsEngine::execute_frame() {
+  _game_logic.physics_tick();
+  update();
+}
+
+void GraphicsEngine::mousePressEvent(QMouseEvent *event) {
+  if (event->button() == Qt::LeftButton) {
+    QPointF mouse_coords = coords_window_to_game(event->pos());
+    _game_logic.mouse_click(mouse_coords.x(), mouse_coords.y());
+  }
+}
+void GraphicsEngine::mouseMoveEvent(QMouseEvent *event) {
+  if (event->buttons().testFlag(Qt::LeftButton)) {
+    QPointF mouse_coords = coords_window_to_game(event->pos());
+    _game_logic.mouse_move(mouse_coords.x(), mouse_coords.y());
+  }
+}
+void GraphicsEngine::mouseReleaseEvent(QMouseEvent *event) {
+  if (event->button() == Qt::LeftButton) {
+    QPointF mouse_coords = coords_window_to_game(event->pos());
+    _game_logic.mouse_release(mouse_coords.x(), mouse_coords.y());
+  }
+}
+
+float GraphicsEngine::remap(float min_old, float max_old, float min_new,
+                            float max_new, float value) {
+  return (min_new +
+          (value - min_old) * (max_new - min_new) / (max_old - min_old));
+}
+
+QPointF GraphicsEngine::coords_window_to_game(QPoint mouse_pos) {
+  int max_size = std::max(_game_width, _game_height);
+  float mouse_x = remap(0, _view_width, 0, max_size, mouse_pos.x());
+  float mouse_y = max_size - remap(0, _view_height, 0, max_size, mouse_pos.y());
+
+  float x_centering_offset = ((max_size - _game_width) / 2);
+  float y_centering_offset = ((max_size - _game_height) / 2);
+  mouse_x -= x_centering_offset;
+  mouse_y -= y_centering_offset;
+
+  return QPointF(mouse_x, mouse_y);
+}
 
 void GraphicsEngine::initializeGL() {
   _opengl_mutex.lock();
@@ -328,8 +384,8 @@ void GraphicsEngine::rebuild_board_params_buffer() {
   for (auto column : game_board) {
     for (auto piece : column) {
       // each piece consists of 6 vertices
-      float offset_x = piece.offset_x / max_size;
-      float offset_y = piece.offset_y / max_size;
+      float offset_x = remap(-max_size, max_size, -2.0f, 2.0f, piece.offset_x);
+      float offset_y = remap(-max_size, max_size, -2.0f, 2.0f, piece.offset_y);
       float offset_z = 0;
       float is_gold = 0.0f;
       TextureCoords tex_coords = _piece_texture_coords[piece.type];
