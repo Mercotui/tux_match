@@ -9,7 +9,7 @@ out vec2 vtf_texcoord;
 
 void main()
 {
-    gl_Position = vec4(position, 0.0, 1.0);
+    gl_Position = vec4(position + offset.xy, offset.z, 1.0);
     vtf_texcoord = tex;
     vtf_is_gold = is_gold;
 }

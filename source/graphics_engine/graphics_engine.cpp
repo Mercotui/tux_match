@@ -321,13 +321,15 @@ void GraphicsEngine::rebuild_board_vertex_buffer(int new_width,
 }
 
 void GraphicsEngine::rebuild_board_params_buffer() {
+  int max_size = std::max(_game_logic.width(), _game_logic.height());
+
   std::vector<float> pieces_interleaved;
   auto game_board = _game_logic.game_board();
   for (auto column : game_board) {
     for (auto piece : column) {
       // each piece consists of 6 vertices
-      float offset_x = piece.offset_x;
-      float offset_y = piece.offset_y;
+      float offset_x = piece.offset_x / max_size;
+      float offset_y = piece.offset_y / max_size;
       float offset_z = 0;
       float is_gold = 0.0f;
       TextureCoords tex_coords = _piece_texture_coords[piece.type];

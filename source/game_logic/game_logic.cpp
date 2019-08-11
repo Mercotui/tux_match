@@ -13,6 +13,7 @@ void GameLogic::mouse_release() { ; }
 
 void GameLogic::create_board() {
   std::uniform_int_distribution<> random_distribution(kTUX, kWILDEBEEST);
+  std::uniform_int_distribution<> random_offset(-1, 1);
 
   _board.resize(_board_width);
   for (auto &column : _board) {
@@ -20,6 +21,8 @@ void GameLogic::create_board() {
     for (auto &piece : column) {
       piece.type =
           static_cast<PieceType>(random_distribution(_random_generator));
+      piece.offset_x = random_offset(_random_generator);
+      piece.offset_y = random_offset(_random_generator);
     }
   }
 }
