@@ -288,7 +288,10 @@ void GraphicsEngine::paintGL() {
 
     // draw background
     _program_background.bind();
-    // _program_background.setUniformValue("is_GLRED", _is_grayscale);
+    _program_background.setUniformValue("score_mode", 1);
+    float score = static_cast<float>(_game_logic.score()) /
+                  static_cast<float>(_game_logic.goal());
+    _program_background.setUniformValue("score", score);
     draw_background();
 
     // draw object
