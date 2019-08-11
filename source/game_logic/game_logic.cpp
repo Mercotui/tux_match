@@ -3,7 +3,11 @@
 #include <iostream>
 
 GameLogic::GameLogic()
-    : _random_generator(), _board_width(9), _board_height(9) {
+    : _random_generator(),
+      _board_width(9),
+      _board_height(9),
+      _goal(4),
+      _score(0) {
   create_board();
 }
 
@@ -11,17 +15,31 @@ GameLogic::~GameLogic() { ; }
 
 void GameLogic::mouse_click(float x, float y) {
   _click_pos = {x, y};
-  _board[_click_pos.x][_click_pos.y].animation = kSATIONARY;
+  tile_at(_click_pos).animation = kSTATIONARY;
 }
 
 void GameLogic::mouse_move(float x, float y) {
-  BoardTile &tile = _board[_click_pos.x][_click_pos.y];
+  BoardTile &tile = tile_at(_click_pos);
   tile.offset_x = std::clamp(x - _click_pos.x, -1.0f, 1.0f);
   tile.offset_y = std::clamp(y - _click_pos.y, -1.0f, 1.0f);
+
+  if (fabs(tile.offset_x) > 0.9f || fabs(tile.offset_y) > 0.9f) {
+    evade_tile();
+  }
 }
 
 void GameLogic::mouse_release(float x, float y) {
   _board[_click_pos.x][_click_pos.y].animation = kRETURN;
+
+  for (auto &column : _board) {
+    column.resize(_board_height);
+    for (auto &piece : column) {
+      if (piece.animation == kEVADE_UP || piece.animation == kEVADE_DOWN ||
+          piece.animation == kEVADE_LEFT || piece.animation == kEVADE_RIGHT) {
+        piece.animation = kRETURN;
+      }
+    }
+  }
 }
 
 void GameLogic::physics_tick() {
@@ -29,11 +47,32 @@ void GameLogic::physics_tick() {
     column.resize(_board_height);
     for (auto &piece : column) {
       switch (piece.animation) {
-        case kSATIONARY:
+        case kSTATIONARY:
           break;
         case kRETURN:
           piece.offset_x *= 0.8f;
           piece.offset_y *= 0.8f;
+
+          if (fabs(piece.offset_x) < 0.1f && fabs(piece.offset_y) < 0.1f) {
+            piece.offset_x = 0.0f;
+            piece.offset_y = 0.0f;
+            piece.animation = kSTATIONARY;
+          }
+          break;
+        case kFALL:
+          piece.offset_x += 0.2f;
+          break;
+        case kEVADE_UP:
+          piece.offset_y = std::max(piece.offset_y - 0.1f, -1.0f);
+          break;
+        case kEVADE_DOWN:
+          piece.offset_y = std::min(piece.offset_y + 0.1f, 1.0f);
+          break;
+        case kEVADE_LEFT:
+          piece.offset_x = std::max(piece.offset_x - 0.1f, -1.0f);
+          break;
+        case kEVADE_RIGHT:
+          piece.offset_x = std::min(piece.offset_x + 0.1f, 1.0f);
           break;
       }
     }
@@ -52,7 +91,7 @@ void GameLogic::create_board() {
           static_cast<PieceType>(random_distribution(_random_generator));
       piece.offset_x = 0;
       piece.offset_y = 0;
-      piece.animation = kSATIONARY;
+      piece.animation = kSTATIONARY;
     }
   }
 }
@@ -63,4 +102,38 @@ int GameLogic::height() { return _board_height; }
 
 const std::vector<std::vector<GameLogic::BoardTile>> &GameLogic::game_board() {
   return _board;
+}
+
+int GameLogic::goal() { return _goal; }
+
+int GameLogic::score() { return _score; }
+
+GameLogic::BoardTile &GameLogic::tile_at(Coordinates pos) {
+  return _board[static_cast<int>(pos.x)][static_cast<int>(pos.y)];
+}
+
+void GameLogic::evade_tile() {
+  BoardTile &tile = tile_at(_click_pos);
+  Animation evade_animation;
+  Coordinates evading_tile = _click_pos;
+
+  if (fabs(tile.offset_x) > fabs(tile.offset_y)) {
+    if (tile.offset_x > 0) {
+      evade_animation = kEVADE_LEFT;
+      evading_tile.x++;
+    } else {
+      evade_animation = kEVADE_RIGHT;
+      evading_tile.x--;
+    }
+  } else {
+    if (tile.offset_y > 0) {
+      evade_animation = kEVADE_UP;
+      evading_tile.y++;
+    } else {
+      evade_animation = kEVADE_DOWN;
+      evading_tile.y--;
+    }
+  }
+
+  tile_at(evading_tile).animation = evade_animation;
 }

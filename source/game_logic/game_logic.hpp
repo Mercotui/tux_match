@@ -7,7 +7,15 @@
 class GameLogic {
  public:
   enum PieceType { kTUX = 0, kHAT, kCHAMELEON, kWILDEBEEST };
-  enum Animation { kSATIONARY = 0, kRETURN };
+  enum Animation {
+    kSTATIONARY = 0,
+    kRETURN,
+    kFALL,
+    kEVADE_UP,
+    kEVADE_DOWN,
+    kEVADE_LEFT,
+    kEVADE_RIGHT,
+  };
 
   typedef struct {
     float offset_x;
@@ -34,13 +42,19 @@ class GameLogic {
   int height();
   const std::vector<std::vector<BoardTile>> &game_board();
 
- private:
-  std::vector<std::vector<BoardTile>> _board;
+  int score();
+  int goal();
 
+ private:
+  BoardTile &tile_at(Coordinates pos);
+  void evade_tile();
+  std::vector<std::vector<BoardTile>> _board;
   std::default_random_engine _random_generator;
   int _board_width;
   int _board_height;
   Coordinates _click_pos;
+  int _goal;
+  int _score;
 };
 
 #endif  // GAME_LOGIC_HPP
