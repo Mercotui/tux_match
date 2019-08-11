@@ -37,7 +37,7 @@ int main(int argc, char *argv[]) {
   QSurfaceFormat::setDefaultFormat(glFormat);
 
   // create the main app window
-  graphics_engine window;
+  GraphicsEngine window;
 
   window.setWindowTitle("Tux Match!");
 

@@ -8,16 +8,24 @@
 #include <QOpenGLShaderProgram>
 #include <QOpenGLTexture>
 #include <QOpenGLWidget>
+#include <QPoint>
 #include <QString>
 #include <QVector2D>
 #include <QVector3D>
 
-class graphics_engine final : public QOpenGLWidget,
-                              protected QOpenGLExtraFunctions {
+#include "game_logic/game_logic.hpp"
+
+typedef struct {
+  float begin;
+  float end;
+} TextureCoords;
+
+class GraphicsEngine final : public QOpenGLWidget,
+                             protected QOpenGLExtraFunctions {
   Q_OBJECT
  public:
-  graphics_engine(QWidget *parent = 0);
-  ~graphics_engine();
+  GraphicsEngine(QWidget *parent = 0);
+  ~GraphicsEngine();
 
   // QOpenGLWidget reimplemented functions
   void initializeGL();
@@ -35,26 +43,31 @@ class graphics_engine final : public QOpenGLWidget,
   void load_textures();
   void generate_buffers();
   void compile_shaders();
+  void rebuild_board_params_buffer();
+  void rebuild_board_vertex_buffer(int new_width, int new_height);
   void draw_playfield();
   void draw_background();
+
+  GameLogic _game_logic;
+  int _game_width;
+  int _game_height;
 
   bool _is_initialized;
   int _view_width;
   int _view_height;
   QMutex _opengl_mutex;
   QMatrix4x4 _mat_projection;
-  GLuint _is_grayscale;
-  GLuint _current_handle;
-  GLuint _last_handle;
-  GLuint _readback_buffer;
   GLuint _background_vao;
-  GLuint _object_vao;
   GLuint _background_vbo;
-  GLuint _object_vbo;
+  GLuint _board_vao;
+  GLuint _board_vertex_vbo;
+  GLuint _board_params_vbo;
   GLuint _vertex_count;
+  std::map<GameLogic::PieceType, TextureCoords> _piece_texture_coords;
+  QOpenGLTexture *_pieces_texture;
   QOpenGLTexture *_background_texture;
   QOpenGLShaderProgram _program_background;
-  QOpenGLShaderProgram _program_object;
+  QOpenGLShaderProgram _program_board;
 };
 
 #endif  // GRAPHICS_ENGINE_HPP

@@ -12,6 +12,7 @@ find_package(Qt5 REQUIRED Core Gui Quick Widgets Multimedia )
 # tux_match app
 ################################################################################
 add_subdirectory(graphics_engine)
+add_subdirectory(game_logic)
 
 qt5_add_resources(tux_match_app_rcc ${tux_match_app_qml_qrc}
     # ${CMAKE_SOURCE_DIR}/resources/3D_models/3D_models.qrc
@@ -27,7 +28,7 @@ else()
     add_executable(tux_match_app ${tux_match_app_SOURCES} ${tux_match_app_HEADERS} ${tux_match_app_rcc})
 endif()
 target_link_libraries(tux_match_app graphics_engine Qt5::Core Qt5::Gui Qt5::Quick Qt5::Widgets Qt5::Multimedia )
-
+set_target_properties( tux_match_app PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_PROJECT_BINARY_DIR}")
 ################################################################################
 # Android apk creation
 ################################################################################

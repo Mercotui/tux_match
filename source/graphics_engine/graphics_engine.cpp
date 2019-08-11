@@ -1,8 +1,9 @@
-// graphics_engine.cpp
+// GraphicsEngine.cpp
 
 #include "graphics_engine.hpp"
 
 #include <math.h>
+#include <QMutexLocker>
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLTexture>
 #include <QTemporaryFile>
@@ -13,35 +14,28 @@
 #include <GLES3/gl3.h>
 #endif
 
-graphics_engine::graphics_engine(QWidget *parent)
+GraphicsEngine::GraphicsEngine(QWidget *parent)
     : QOpenGLWidget(parent),
       _is_initialized(false),
-      _opengl_mutex(QMutex::Recursive) {
+      _opengl_mutex(QMutex::Recursive),
+      _vertex_count(0) {
   Q_INIT_RESOURCE(GL_shaders);
 }
 
-graphics_engine::~graphics_engine() {
-  _opengl_mutex.lock();
-  glDeleteBuffers(1, &_object_vbo);
-  glDeleteVertexArrays(1, &_object_vao);
-  _opengl_mutex.unlock();
-}
+GraphicsEngine::~GraphicsEngine() { ; }
 
-QSize graphics_engine::minimumSizeHint() const { return QSize(600, 600); }
+QSize GraphicsEngine::minimumSizeHint() const { return QSize(600, 600); }
 
-QSize graphics_engine::sizeHint() const { return QSize(600, 600); }
+QSize GraphicsEngine::sizeHint() const { return QSize(600, 600); }
 
-void graphics_engine::initializeGL() {
+void GraphicsEngine::initializeGL() {
   _opengl_mutex.lock();
   initializeOpenGLFunctions();
 
   glClearColor(1, 0.5, 1, 1.0f);
-  glEnable(GL_DEPTH_TEST);
-  // glEnable (GL_CULL_FACE);
   glEnable(GL_TEXTURE_2D);
-
-  // generate a buffer to bind to textures
-  glGenFramebuffers(1, &_readback_buffer);
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
   load_textures();
   compile_shaders();
@@ -51,18 +45,35 @@ void graphics_engine::initializeGL() {
   _mat_projection.ortho(-2.0f, +2.0f, -2.0f, +2.0f, 1.0f, 25.0f);
 
   _is_initialized = true;
-  emit initialized();
   _opengl_mutex.unlock();
+
+  emit initialized();
 }
 
-void graphics_engine::load_textures() {
+void GraphicsEngine::load_textures() {
   _background_texture = new QOpenGLTexture(QImage(":/images/tux_square.png"));
   _background_texture->setMinificationFilter(QOpenGLTexture::Nearest);
   _background_texture->setMagnificationFilter(QOpenGLTexture::Linear);
   _background_texture->setWrapMode(QOpenGLTexture::Repeat);
+
+  _pieces_texture = new QOpenGLTexture(QImage(":/images/pieces.png"));
+  _pieces_texture->setMinificationFilter(QOpenGLTexture::Nearest);
+  _pieces_texture->setMagnificationFilter(QOpenGLTexture::Linear);
+  _pieces_texture->setWrapMode(QOpenGLTexture::Repeat);
+
+  // build piece coords map
+  float piece_width = 1.0f / 4;
+  _piece_texture_coords[GameLogic::kCHAMELEON].begin = piece_width * 0;
+  _piece_texture_coords[GameLogic::kCHAMELEON].end = piece_width * 1;
+  _piece_texture_coords[GameLogic::kTUX].begin = piece_width * 1;
+  _piece_texture_coords[GameLogic::kTUX].end = piece_width * 2;
+  _piece_texture_coords[GameLogic::kHAT].begin = piece_width * 2;
+  _piece_texture_coords[GameLogic::kHAT].end = piece_width * 3;
+  _piece_texture_coords[GameLogic::kWILDEBEEST].begin = piece_width * 3;
+  _piece_texture_coords[GameLogic::kWILDEBEEST].end = piece_width * 4;
 }
 
-void graphics_engine::generate_buffers() {
+void GraphicsEngine::generate_buffers() {
   _opengl_mutex.lock();
   // setup background vao
   {
@@ -103,43 +114,57 @@ void graphics_engine::generate_buffers() {
 
     // bind texture
     int tex_uniform = _program_background.uniformLocation("u_tex_background");
-    _background_texture->bind(GL_TEXTURE0);
-    glUniform1i(tex_uniform, 0);
-    _background_texture->release();
+    glUniform1i(tex_uniform, GL_TEXTURE0);
   }
 
-  // setup object vao
+  // setup board vao
   {
-    glGenVertexArrays(1, &_object_vao);
-    glGenBuffers(1, &_object_vbo);
+    glGenVertexArrays(1, &_board_vao);
+    glGenBuffers(1, &_board_vertex_vbo);
+    glGenBuffers(1, &_board_params_vbo);
 
-    glBindVertexArray(_object_vao);
-    glBindBuffer(GL_ARRAY_BUFFER, _object_vbo);
+    glBindVertexArray(_board_vao);
+    // vertex buffer
+    glBindBuffer(GL_ARRAY_BUFFER, _board_vertex_vbo);
 
-    int pos_location = _program_object.attributeLocation("position");
-    glVertexAttribPointer(pos_location, 3, GL_FLOAT, GL_FALSE,
-                          10 * sizeof(float), reinterpret_cast<void *>(0));
+    int pos_location = _program_board.attributeLocation("position");
+    glVertexAttribPointer(pos_location, 2, GL_FLOAT, GL_FALSE,
+                          2 * sizeof(float), reinterpret_cast<void *>(0));
     glEnableVertexAttribArray(pos_location);
 
-    int nor_location = _program_object.attributeLocation("normal");
-    glVertexAttribPointer(nor_location, 3, GL_FLOAT, GL_FALSE,
-                          10 * sizeof(float),
-                          reinterpret_cast<void *>(3 * sizeof(float)));
-    glEnableVertexAttribArray(nor_location);
+    // texture and offset buffer
+    glBindBuffer(GL_ARRAY_BUFFER, _board_params_vbo);
 
-    int col_location = _program_object.attributeLocation("color");
-    glVertexAttribPointer(col_location, 4, GL_FLOAT, GL_FALSE,
-                          10 * sizeof(float),
-                          reinterpret_cast<void *>(6 * sizeof(float)));
-    glEnableVertexAttribArray(col_location);
+    size_t buffer_element_size = (5 * sizeof(float)) + sizeof(int);
+    void *tex_offset = reinterpret_cast<void *>(0);
+    void *offset_offset = reinterpret_cast<void *>((sizeof(float) * 2));
+    void *is_gold_offset = reinterpret_cast<void *>((sizeof(float) * 5));
+
+    int tex_location = _program_board.attributeLocation("tex");
+    glVertexAttribPointer(tex_location, 2, GL_FLOAT, GL_FALSE,
+                          buffer_element_size, tex_offset);
+    glEnableVertexAttribArray(tex_location);
+
+    int offset_location = _program_board.attributeLocation("offset");
+    glVertexAttribPointer(offset_location, 3, GL_FLOAT, GL_FALSE,
+                          buffer_element_size, offset_offset);
+    glEnableVertexAttribArray(offset_location);
+
+    int is_gold_location = _program_board.attributeLocation("is_gold");
+    glVertexAttribPointer(is_gold_location, 1, GL_FLOAT, GL_FALSE,
+                          buffer_element_size, is_gold_offset);
+    glEnableVertexAttribArray(offset_location);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    int tex_uniform = _program_board.uniformLocation("u_tex_background");
+    glUniform1i(tex_uniform, GL_TEXTURE0);
     glBindVertexArray(0);
   }
   _opengl_mutex.unlock();
 }
 
-void graphics_engine::compile_shaders() {
+void GraphicsEngine::compile_shaders() {
   _opengl_mutex.lock();
   // background shaders
   {
@@ -164,10 +189,10 @@ void graphics_engine::compile_shaders() {
                                                 fs_source);
     _program_background.link();
   }
-  // object shaders
+  // gameboard shaders
   {
-    QFile vs_file(":/GL_shaders/object_vs.glsl");
-    QFile fs_file(":/GL_shaders/object_fs.glsl");
+    QFile vs_file(":/GL_shaders/gamepiece_vs.glsl");
+    QFile fs_file(":/GL_shaders/gamepiece_fs.glsl");
     vs_file.open(QIODevice::ReadOnly);
     fs_file.open(QIODevice::ReadOnly);
     QByteArray vs_source = vs_file.readAll();
@@ -181,14 +206,14 @@ void graphics_engine::compile_shaders() {
       fs_source.prepend(QByteArrayLiteral("#version 410\n"));
     }
 
-    _program_object.addShaderFromSourceCode(QOpenGLShader::Vertex, vs_source);
-    _program_object.addShaderFromSourceCode(QOpenGLShader::Fragment, fs_source);
-    _program_object.link();
+    _program_board.addShaderFromSourceCode(QOpenGLShader::Vertex, vs_source);
+    _program_board.addShaderFromSourceCode(QOpenGLShader::Fragment, fs_source);
+    _program_board.link();
   }
   _opengl_mutex.unlock();
 }
 
-void graphics_engine::resizeGL(int width, int height) {
+void GraphicsEngine::resizeGL(int width, int height) {
   _opengl_mutex.lock();
   _view_width = width;
   _view_height = height;
@@ -200,14 +225,14 @@ void graphics_engine::resizeGL(int width, int height) {
   _opengl_mutex.unlock();
 }
 
-void graphics_engine::paintGL() {
+void GraphicsEngine::paintGL() {
   if (_is_initialized) {
     _opengl_mutex.lock();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // draw background
     _program_background.bind();
-    _program_background.setUniformValue("is_GLRED", _is_grayscale);
+    // _program_background.setUniformValue("is_GLRED", _is_grayscale);
     draw_background();
 
     // draw object
@@ -219,29 +244,133 @@ void graphics_engine::paintGL() {
     // mat_modelview.rotate(_z_rot, 0, 0, 1);
     // mat_modelview = _mat_projection * mat_modelview;
 
-    // _program_object.bind();
-    // _program_object.setUniformValue("view_matrix", mat_modelview);
-    // draw_playfield();
+    // _program_board.bind();
+    // _program_board.setUniformValue("view_matrix", mat_modelview);
+    draw_playfield();
     _opengl_mutex.unlock();
   }
 }
 
-void graphics_engine::draw_playfield() {
+void GraphicsEngine::draw_playfield() {
   _opengl_mutex.lock();
-  // draw the object
-  glBindVertexArray(_object_vao);
+
+  int new_width = _game_logic.width();
+  int new_height = _game_logic.height();
+  if (new_width != _game_width || new_height != _game_height) {
+    rebuild_board_vertex_buffer(new_width, new_height);
+    _game_width = new_width;
+    _game_height = new_height;
+  }
+
+  rebuild_board_params_buffer();
+
+  glBindVertexArray(_board_vao);
+  _program_board.bind();
+  _pieces_texture->bind(GL_TEXTURE0);
   glDrawArrays(GL_TRIANGLES, 0, _vertex_count);
+  _pieces_texture->release();
+  _program_board.release();
   glBindVertexArray(0);
+
   _opengl_mutex.unlock();
 }
 
-void graphics_engine::draw_background() {
+void GraphicsEngine::rebuild_board_vertex_buffer(int new_width,
+                                                 int new_height) {
+  int max_size = std::max(new_width, new_height);
+  float piece_size = 2.0f / max_size;
+  float x_centering_offset = ((piece_size * new_width) / 2);
+  float y_centering_offset = ((piece_size * new_height) / 2);
+
+  // Create a buffer of the vertices for each tile.
+  // To draw tile ABCD, we draw two triangles ACB and ADC
+  //   A*******B
+  //   * *     *
+  // ^ *   *   *
+  // | *     * *
+  // y D*******C
+  //   x ->
+
+  _vertex_count = 0;
+  std::vector<float> vertices;
+  for (int x = 0; x < new_width; x++) {
+    for (int y = 0; y < new_height; y++) {
+      _vertex_count += 6;
+      float Dx = (piece_size * x) - x_centering_offset;
+      float Dy = (piece_size * y) - y_centering_offset;
+      float Cx = Dx + piece_size;
+      float Cy = Dy;
+      float Bx = Cx;
+      float By = Cy + piece_size;
+      float Ax = Dx;
+      float Ay = By;
+
+      std::vector<float> triangle_ACB = {Ax, Ay, Cx, Cy, Bx, By};
+      std::vector<float> triangle_ADC = {Ax, Ay, Dx, Dy, Cx, Cy};
+      vertices.insert(vertices.end(), triangle_ACB.begin(), triangle_ACB.end());
+      vertices.insert(vertices.end(), triangle_ADC.begin(), triangle_ADC.end());
+    }
+  }
+
   _opengl_mutex.lock();
-  // draw the 2 triangles that form the background
+  glBindBuffer(GL_ARRAY_BUFFER, _board_vertex_vbo);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertices.size(),
+               vertices.data(), GL_STATIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  _opengl_mutex.unlock();
+}
+
+void GraphicsEngine::rebuild_board_params_buffer() {
+  std::vector<float> pieces_interleaved;
+  auto game_board = _game_logic.game_board();
+  for (auto column : game_board) {
+    for (auto piece : column) {
+      // each piece consists of 6 vertices
+      float offset_x = piece.offset_x;
+      float offset_y = piece.offset_y;
+      float offset_z = 0;
+      float is_gold = 0.0f;
+      TextureCoords tex_coords = _piece_texture_coords[piece.type];
+      float Dx = tex_coords.begin;
+      float Dy = 1.0f;
+      float Cx = tex_coords.end;
+      float Cy = 1.0f;
+      float Bx = tex_coords.end;
+      float By = 0.0f;
+      float Ax = tex_coords.begin;
+      float Ay = 0.0f;
+
+      std::vector<float> a = {Ax, Ay, offset_x, offset_y, offset_z, is_gold};
+      std::vector<float> b = {Bx, By, offset_x, offset_y, offset_z, is_gold};
+      std::vector<float> c = {Cx, Cy, offset_x, offset_y, offset_z, is_gold};
+      std::vector<float> d = {Dx, Dy, offset_x, offset_y, offset_z, is_gold};
+
+      // ACB ADC
+      pieces_interleaved.insert(pieces_interleaved.end(), a.begin(), a.end());
+      pieces_interleaved.insert(pieces_interleaved.end(), c.begin(), c.end());
+      pieces_interleaved.insert(pieces_interleaved.end(), b.begin(), b.end());
+      pieces_interleaved.insert(pieces_interleaved.end(), a.begin(), a.end());
+      pieces_interleaved.insert(pieces_interleaved.end(), d.begin(), d.end());
+      pieces_interleaved.insert(pieces_interleaved.end(), c.begin(), c.end());
+    }
+  }
+
+  glBindBuffer(GL_ARRAY_BUFFER, _board_params_vbo);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(float) * pieces_interleaved.size(),
+               pieces_interleaved.data(), GL_STREAM_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void GraphicsEngine::draw_background() {
+  _opengl_mutex.lock();
+
   glBindVertexArray(_background_vao);
+  _program_background.bind();
   _background_texture->bind(GL_TEXTURE0);
   glDrawArrays(GL_TRIANGLES, 0, 6);
   _background_texture->release();
+  _program_background.release();
   glBindVertexArray(0);
+
   _opengl_mutex.unlock();
 }

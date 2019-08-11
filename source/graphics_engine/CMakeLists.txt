@@ -9,9 +9,9 @@ qt5_add_resources(graphics_engine_RRC shaders/GL_shaders.qrc)
 
 add_library( graphics_engine STATIC ${graphics_engine_SOURCES} ${graphics_engine_RRC} ${graphics_engine_MOC} )
 if(ANDROID)
-    target_link_libraries( graphics_engine ${QT_LIBRARIES} GLESv3)
+    target_link_libraries( graphics_engine game_logic ${QT_LIBRARIES} GLESv3)
 else()
-    target_link_libraries( graphics_engine ${QT_LIBRARIES} )
+    target_link_libraries( graphics_engine game_logic ${QT_LIBRARIES} )
 endif()
 target_include_directories ( graphics_engine PUBLIC ${INCLUDE_DIR} )
 
