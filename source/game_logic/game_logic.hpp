@@ -22,6 +22,7 @@ class GameLogic {
     float offset_y;
     PieceType type;
     Animation animation;
+    int blob_id;
   } BoardTile;
 
   typedef struct {
@@ -46,8 +47,10 @@ class GameLogic {
   int goal();
 
  private:
-  BoardTile &tile_at(Coordinates pos);
+  inline BoardTile &tile_at(Coordinates pos);
   void evade_tile();
+  void check_move(Coordinates source, Coordinates destination);
+
   std::vector<std::vector<BoardTile>> _board;
   std::default_random_engine _random_generator;
   int _board_width;

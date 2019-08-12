@@ -19,9 +19,12 @@ void GameLogic::mouse_click(float x, float y) {
 }
 
 void GameLogic::mouse_move(float x, float y) {
+  float x_clamped = std::clamp(x, 0.0f, 8.9f);
+  float y_clamped = std::clamp(y, 0.0f, 8.9f);
+
   BoardTile &tile = tile_at(_click_pos);
-  tile.offset_x = std::clamp(x - _click_pos.x, -1.0f, 1.0f);
-  tile.offset_y = std::clamp(y - _click_pos.y, -1.0f, 1.0f);
+  tile.offset_x = std::clamp(x_clamped - _click_pos.x, -1.0f, 1.0f);
+  tile.offset_y = std::clamp(y_clamped - _click_pos.y, -1.0f, 1.0f);
 
   if (fabs(tile.offset_x) > 0.9f || fabs(tile.offset_y) > 0.9f) {
     evade_tile();
@@ -40,6 +43,10 @@ void GameLogic::mouse_release(float x, float y) {
       }
     }
   }
+
+  float x_clamped = std::clamp(x, -1.0f, 1.0f);
+  float y_clamped = std::clamp(y, -1.0f, 1.0f);
+  check_move(_click_pos, {x_clamped, y_clamped});
 }
 
 void GameLogic::physics_tick() {
@@ -109,7 +116,7 @@ int GameLogic::goal() { return _goal; }
 int GameLogic::score() { return _score; }
 
 GameLogic::BoardTile &GameLogic::tile_at(Coordinates pos) {
-  return _board[static_cast<int>(pos.x)][static_cast<int>(pos.y)];
+  return _board.at(static_cast<int>(pos.x)).at(static_cast<int>(pos.y));
 }
 
 void GameLogic::evade_tile() {
@@ -135,5 +142,21 @@ void GameLogic::evade_tile() {
     }
   }
 
+  // reset other tiles
+  tile_at({_click_pos.x - 1, _click_pos.y}).animation = kRETURN;
+  tile_at({_click_pos.x + 1, _click_pos.y}).animation = kRETURN;
+  tile_at({_click_pos.x, _click_pos.y - 1}).animation = kRETURN;
+  tile_at({_click_pos.x, _click_pos.y + 1}).animation = kRETURN;
+
+  // set evading tile
   tile_at(evading_tile).animation = evade_animation;
+}
+
+void GameLogic::check_move(Coordinates source, Coordinates destination) {
+  for (auto column = _board.begin(); column != _board.end(); column++) {
+    for (auto tile = column->begin(); tile != column->end(); tile++) {
+      std::array<int, 4> blob_ids;
+      std::cout << (tile - 1)->blob_id << std::endl;
+    }
+  }
 }
