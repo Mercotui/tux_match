@@ -2,7 +2,8 @@
 #define GAME_LOGIC_HPP
 
 #include <random>
-#include <vector>
+#include <set>
+#include <unordered_set>
 
 class GameLogic {
  public:
@@ -11,6 +12,7 @@ class GameLogic {
     kSTATIONARY = 0,
     kRETURN,
     kFALL,
+    kDELETE,
     kEVADE_UP,
     kEVADE_DOWN,
     kEVADE_LEFT,
@@ -22,13 +24,18 @@ class GameLogic {
     float offset_y;
     PieceType type;
     Animation animation;
-    int blob_id;
+    int blob_label;
   } BoardTile;
+
+  typedef struct {
+    int x;
+    int y;
+  } Coordinates;
 
   typedef struct {
     float x;
     float y;
-  } Coordinates;
+  } CoordinatesF;
 
   GameLogic();
   ~GameLogic();
@@ -47,17 +54,28 @@ class GameLogic {
   int goal();
 
  private:
-  inline BoardTile &tile_at(Coordinates pos);
+  inline BoardTile &tile_at(CoordinatesF pos);
   void evade_tile();
-  void check_move(Coordinates source, Coordinates destination);
+  bool check_move(CoordinatesF source_f, CoordinatesF destination_f);
+  void execute_move(CoordinatesF source_f, CoordinatesF destination_f);
+  void label_blobs();
+  void label_tile(int x, int y);
+  inline std::set<int> get_neighbour_blobs(Coordinates pos);
+  inline std::set<int> get_neighbour_blobs(Coordinates pos, PieceType type);
+  inline std::set<int> get_past_neighbour_blobs(Coordinates pos);
+  inline std::set<int> get_past_neighbour_blobs(Coordinates pos,
+                                                PieceType type);
+  inline int mark_blobs_for_deletion(std::set<int> marked_labels);
 
   std::vector<std::vector<BoardTile>> _board;
+  std::vector<int> _blob_histogram;
   std::default_random_engine _random_generator;
   int _board_width;
   int _board_height;
-  Coordinates _click_pos;
+  CoordinatesF _click_pos;
   int _goal;
   int _score;
+  bool _field_changed;
 };
 
 #endif  // GAME_LOGIC_HPP

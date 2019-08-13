@@ -1,5 +1,7 @@
 #include "game_logic.hpp"
+
 #include <algorithm>
+#include <array>
 #include <iostream>
 
 GameLogic::GameLogic()
@@ -7,7 +9,8 @@ GameLogic::GameLogic()
       _board_width(9),
       _board_height(9),
       _goal(4),
-      _score(0) {
+      _score(0),
+      _field_changed(true) {
   create_board();
 }
 
@@ -44,12 +47,18 @@ void GameLogic::mouse_release(float x, float y) {
     }
   }
 
-  float x_clamped = std::clamp(x, -1.0f, 1.0f);
-  float y_clamped = std::clamp(y, -1.0f, 1.0f);
-  check_move(_click_pos, {x_clamped, y_clamped});
+  float x_clamped = _click_pos.x + std::clamp(x - _click_pos.x, -1.0f, 1.0f);
+  float y_clamped = _click_pos.y + std::clamp(y - _click_pos.y, -1.0f, 1.0f);
+  CoordinatesF destination_tile = {x_clamped, y_clamped};
+
+  if (check_move(_click_pos, destination_tile)) {
+    execute_move(_click_pos, destination_tile);
+  }
 }
 
 void GameLogic::physics_tick() {
+  bool delete_animation_done = false;
+
   for (auto &column : _board) {
     column.resize(_board_height);
     for (auto &piece : column) {
@@ -69,6 +78,12 @@ void GameLogic::physics_tick() {
         case kFALL:
           piece.offset_x += 0.2f;
           break;
+        case kDELETE:
+          piece.offset_x += 0.2f;
+          if (piece.offset_x > 2) {
+            delete_animation_done = true;
+          }
+          break;
         case kEVADE_UP:
           piece.offset_y = std::max(piece.offset_y - 0.1f, -1.0f);
           break;
@@ -83,6 +98,10 @@ void GameLogic::physics_tick() {
           break;
       }
     }
+  }
+
+  if (delete_animation_done) {
+    ;
   }
 }
 
@@ -115,14 +134,14 @@ int GameLogic::goal() { return _goal; }
 
 int GameLogic::score() { return _score; }
 
-GameLogic::BoardTile &GameLogic::tile_at(Coordinates pos) {
+GameLogic::BoardTile &GameLogic::tile_at(CoordinatesF pos) {
   return _board.at(static_cast<int>(pos.x)).at(static_cast<int>(pos.y));
 }
 
 void GameLogic::evade_tile() {
   BoardTile &tile = tile_at(_click_pos);
   Animation evade_animation;
-  Coordinates evading_tile = _click_pos;
+  CoordinatesF evading_tile = _click_pos;
 
   if (fabs(tile.offset_x) > fabs(tile.offset_y)) {
     if (tile.offset_x > 0) {
@@ -152,11 +171,163 @@ void GameLogic::evade_tile() {
   tile_at(evading_tile).animation = evade_animation;
 }
 
-void GameLogic::check_move(Coordinates source, Coordinates destination) {
-  for (auto column = _board.begin(); column != _board.end(); column++) {
-    for (auto tile = column->begin(); tile != column->end(); tile++) {
-      std::array<int, 4> blob_ids;
-      std::cout << (tile - 1)->blob_id << std::endl;
+bool GameLogic::check_move(CoordinatesF source_f, CoordinatesF destination_f) {
+  bool move_valid = false;
+  if (_field_changed) {
+    label_blobs();
+    _field_changed = false;
+  }
+
+  Coordinates source = {static_cast<int>(source_f.x),
+                        static_cast<int>(source_f.y)};
+  Coordinates destination = {static_cast<int>(destination_f.x),
+                             static_cast<int>(destination_f.y)};
+  auto source_blobs = get_neighbour_blobs(source, tile_at(destination_f).type);
+  auto destination_blobs =
+      get_neighbour_blobs(destination, tile_at(source_f).type);
+
+  int source_total_blob_size = 1;
+  for (auto label : source_blobs) {
+    source_total_blob_size += _blob_histogram.at(label);
+  }
+  int destination_total_blob_size = 1;
+  for (auto label : destination_blobs) {
+    destination_total_blob_size += _blob_histogram.at(label);
+  }
+
+  if (source_total_blob_size >= 3) {
+    move_valid = true;
+  } else if (destination_total_blob_size >= 3) {
+    move_valid = true;
+  }
+
+  std::cout << "valid=" << move_valid << std::endl;
+  return move_valid;
+}
+
+void GameLogic::execute_move(CoordinatesF source_f,
+                             CoordinatesF destination_f) {
+  std::swap(tile_at(source_f), tile_at(destination_f));
+
+  Coordinates source = {static_cast<int>(source_f.x),
+                        static_cast<int>(source_f.y)};
+  Coordinates destination = {static_cast<int>(destination_f.x),
+                             static_cast<int>(destination_f.y)};
+  auto source_blobs = get_neighbour_blobs(source, tile_at(destination_f).type);
+  auto destination_blobs =
+      get_neighbour_blobs(destination, tile_at(source_f).type);
+
+  mark_blobs_for_deletion(source_blobs);
+  mark_blobs_for_deletion(destination_blobs);
+}
+
+void GameLogic::label_blobs() {
+  // This is a naive labeling algorithm that loops through the 2D board multiple
+  // times. As this only happens when the user attempts a move AND the playing
+  // field has changed since last attempt, it should not be a performance
+  // bottleneck.
+
+  // first pass assign labels, and only check against previously assigned labels
+  int blob_label = 0;
+  for (int x = 0; x < _board_width; x++) {
+    for (int y = 0; y < _board_height; y++) {
+      auto neighbours = get_past_neighbour_blobs({x, y});
+      auto lowest_neighbour_label = neighbours.cbegin();
+      if (lowest_neighbour_label != neighbours.cend()) {
+        _board[x][y].blob_label = *lowest_neighbour_label;
+      } else {
+        _board[x][y].blob_label = blob_label;
+        ++blob_label;
+      }
     }
   }
+
+  // consecutive passes, reduce to continuous blobs and build histogram
+  bool changed;
+  do {
+    changed = false;
+    _blob_histogram.clear();
+    _blob_histogram.resize(blob_label, 0);
+
+    for (int x = 0; x < _board_width; x++) {
+      for (int y = 0; y < _board_height; y++) {
+        auto neighbours = get_neighbour_blobs({x, y});
+        auto lowest_neighbour_label = neighbours.cbegin();
+        if (lowest_neighbour_label != neighbours.cend()) {
+          if (*lowest_neighbour_label < _board[x][y].blob_label) {
+            _board[x][y].blob_label = *lowest_neighbour_label;
+            changed = true;
+          }
+        }
+        _blob_histogram[_board[x][y].blob_label]++;
+      }
+    }
+  } while (changed);
+
+  for (int x = 0; x < _board_width; x++) {
+    for (int y = 0; y < _board_height; y++) {
+      std::cout << _board[x][y].blob_label << " ";
+    }
+    std::cout << std::endl;
+  }
+}
+
+std::set<int> GameLogic::get_neighbour_blobs(Coordinates pos) {
+  return get_neighbour_blobs(pos, _board[pos.x][pos.y].type);
+}
+
+std::set<int> GameLogic::get_neighbour_blobs(Coordinates pos, PieceType type) {
+  std::set<int> ret;
+  if (pos.x > 0) {
+    if (_board[pos.x - 1][pos.y].type == type) {
+      ret.insert(_board[pos.x - 1][pos.y].blob_label);
+    }
+  }
+  if (pos.y > 0) {
+    if (_board[pos.x][pos.y - 1].type == type) {
+      ret.insert(_board[pos.x][pos.y - 1].blob_label);
+    }
+  }
+  if (pos.x < (_board_width - 1)) {
+    if (_board[pos.x + 1][pos.y].type == type) {
+      ret.insert(_board[pos.x + 1][pos.y].blob_label);
+    }
+  }
+  if (pos.y < (_board_height - 1)) {
+    if (_board[pos.x][pos.y + 1].type == type) {
+      ret.insert(_board[pos.x][pos.y + 1].blob_label);
+    }
+  }
+  return ret;
+}
+
+std::set<int> GameLogic::get_past_neighbour_blobs(Coordinates pos) {
+  return get_past_neighbour_blobs(pos, _board[pos.x][pos.y].type);
+}
+
+std::set<int> GameLogic::get_past_neighbour_blobs(Coordinates pos,
+                                                  PieceType type) {
+  std::set<int> ret;
+  if (pos.x > 0) {
+    if (_board[pos.x - 1][pos.y].type == type) {
+      ret.insert(_board[pos.x - 1][pos.y].blob_label);
+    }
+  }
+  if (pos.y > 0) {
+    if (_board[pos.x][pos.y - 1].type == type) {
+      ret.insert(_board[pos.x][pos.y - 1].blob_label);
+    }
+  }
+  return ret;
+}
+
+int GameLogic::mark_blobs_for_deletion(std::set<int> marked_labels) {
+  for (auto &column : _board) {
+    for (auto &tile : column) {
+      if (marked_labels.find(tile.blob_label) != marked_labels.end()) {
+        tile.animation = kDELETE;
+      }
+    }
+  }
+  return 1;
 }
