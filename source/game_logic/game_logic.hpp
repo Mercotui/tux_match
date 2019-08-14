@@ -13,6 +13,7 @@ class GameLogic {
     kRETURN,
     kFALL,
     kDELETE,
+    kDELETE_DONE,
     kEVADE_UP,
     kEVADE_DOWN,
     kEVADE_LEFT,
@@ -56,6 +57,8 @@ class GameLogic {
  private:
   inline BoardTile &tile_at(CoordinatesF pos);
   void evade_tile();
+  void swap_tile(Coordinates source, Coordinates destination);
+  void delete_and_replenish();
   bool check_move(CoordinatesF source_f, CoordinatesF destination_f);
   void execute_move(CoordinatesF source_f, CoordinatesF destination_f);
   void label_blobs();
@@ -75,7 +78,7 @@ class GameLogic {
   CoordinatesF _click_pos;
   int _goal;
   int _score;
-  bool _field_changed;
+  bool _board_tiles_changed;
 };
 
 #endif  // GAME_LOGIC_HPP

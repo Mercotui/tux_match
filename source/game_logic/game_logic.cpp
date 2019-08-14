@@ -8,9 +8,9 @@ GameLogic::GameLogic()
     : _random_generator(),
       _board_width(9),
       _board_height(9),
-      _goal(4),
+      _goal(50),
       _score(0),
-      _field_changed(true) {
+      _board_tiles_changed(true) {
   create_board();
 }
 
@@ -57,8 +57,7 @@ void GameLogic::mouse_release(float x, float y) {
 }
 
 void GameLogic::physics_tick() {
-  bool delete_animation_done = false;
-
+  bool deletes_done = false;
   for (auto &column : _board) {
     column.resize(_board_height);
     for (auto &piece : column) {
@@ -76,12 +75,14 @@ void GameLogic::physics_tick() {
           }
           break;
         case kFALL:
-          piece.offset_x += 0.2f;
+          piece.offset_y -= 0.2f;
           break;
         case kDELETE:
+        case kDELETE_DONE:
           piece.offset_x += 0.2f;
-          if (piece.offset_x > 2) {
-            delete_animation_done = true;
+          if (piece.offset_x > 2.0f) {
+            piece.animation = kDELETE_DONE;
+            deletes_done = true;
           }
           break;
         case kEVADE_UP:
@@ -99,15 +100,13 @@ void GameLogic::physics_tick() {
       }
     }
   }
-
-  if (delete_animation_done) {
-    ;
+  if (deletes_done) {
+    delete_and_replenish();
   }
 }
 
 void GameLogic::create_board() {
   std::uniform_int_distribution<> random_distribution(kTUX, kWILDEBEEST);
-  std::uniform_int_distribution<> random_offset(-1, 1);
 
   _board.resize(_board_width);
   for (auto &column : _board) {
@@ -143,6 +142,7 @@ void GameLogic::evade_tile() {
   Animation evade_animation;
   CoordinatesF evading_tile = _click_pos;
 
+  // evade to the direction from which the dragged tile came
   if (fabs(tile.offset_x) > fabs(tile.offset_y)) {
     if (tile.offset_x > 0) {
       evade_animation = kEVADE_LEFT;
@@ -162,20 +162,63 @@ void GameLogic::evade_tile() {
   }
 
   // reset other tiles
-  tile_at({_click_pos.x - 1, _click_pos.y}).animation = kRETURN;
-  tile_at({_click_pos.x + 1, _click_pos.y}).animation = kRETURN;
-  tile_at({_click_pos.x, _click_pos.y - 1}).animation = kRETURN;
-  tile_at({_click_pos.x, _click_pos.y + 1}).animation = kRETURN;
+  if (_click_pos.x > 0) {
+    tile_at({_click_pos.x - 1, _click_pos.y}).animation = kRETURN;
+  }
+  if (_click_pos.x < _board_width - 1) {
+    tile_at({_click_pos.x + 1, _click_pos.y}).animation = kRETURN;
+  }
+  if (_click_pos.y > 0) {
+    tile_at({_click_pos.x, _click_pos.y - 1}).animation = kRETURN;
+  }
+  if (_click_pos.y < _board_height - 1) {
+    tile_at({_click_pos.x, _click_pos.y + 1}).animation = kRETURN;
+  }
 
   // set evading tile
   tile_at(evading_tile).animation = evade_animation;
 }
 
+void GameLogic::swap_tile(Coordinates source, Coordinates destination) {
+  int delta_x = source.x - destination.x;
+  int delta_y = source.y - destination.y;
+  _board[source.x][source.y].offset_x += delta_x;
+  _board[source.x][source.y].offset_y += delta_y;
+  _board[destination.x][destination.y].offset_x -= delta_x;
+  _board[destination.x][destination.y].offset_y -= delta_y;
+  std::swap(_board[source.x][source.y], _board[destination.x][destination.y]);
+}
+
+void GameLogic::delete_and_replenish() {
+  std::uniform_int_distribution<> random_distribution(kTUX, kWILDEBEEST);
+  BoardTile new_tile = {0, 0, kTUX, kRETURN, 0};
+
+  for (auto &column : _board) {
+    int colum_deletion_count = 0;
+    for (auto piece_it = column.begin(); piece_it != column.end();) {
+      if (piece_it->animation == kDELETE_DONE) {
+        ++colum_deletion_count;
+
+        piece_it = column.erase(piece_it);
+        new_tile.type =
+            static_cast<PieceType>(random_distribution(_random_generator));
+        column.push_back(new_tile);
+      } else {
+        if (piece_it->animation != kDELETE) {
+          piece_it->offset_y += colum_deletion_count;
+          piece_it->animation = kRETURN;
+        }
+        piece_it++;
+      }
+    }
+  }
+}
+
 bool GameLogic::check_move(CoordinatesF source_f, CoordinatesF destination_f) {
   bool move_valid = false;
-  if (_field_changed) {
+  if (_board_tiles_changed) {
     label_blobs();
-    _field_changed = false;
+    _board_tiles_changed = false;
   }
 
   Coordinates source = {static_cast<int>(source_f.x),
@@ -185,6 +228,36 @@ bool GameLogic::check_move(CoordinatesF source_f, CoordinatesF destination_f) {
   auto source_blobs = get_neighbour_blobs(source, tile_at(destination_f).type);
   auto destination_blobs =
       get_neighbour_blobs(destination, tile_at(source_f).type);
+
+  int source_total_blob_size = 0;
+  for (auto label : source_blobs) {
+    source_total_blob_size += _blob_histogram.at(label);
+  }
+  int destination_total_blob_size = 0;
+  for (auto label : destination_blobs) {
+    destination_total_blob_size += _blob_histogram.at(label);
+  }
+
+  if (source_total_blob_size >= 3) {
+    move_valid = true;
+  } else if (destination_total_blob_size >= 3) {
+    move_valid = true;
+  }
+
+  return move_valid;
+}
+
+void GameLogic::execute_move(CoordinatesF source_f,
+                             CoordinatesF destination_f) {
+  Coordinates source = {static_cast<int>(source_f.x),
+                        static_cast<int>(source_f.y)};
+  Coordinates destination = {static_cast<int>(destination_f.x),
+                             static_cast<int>(destination_f.y)};
+  swap_tile(source, destination);
+  _board_tiles_changed = true;
+
+  auto source_blobs = get_neighbour_blobs(source);
+  auto destination_blobs = get_neighbour_blobs(destination);
 
   int source_total_blob_size = 1;
   for (auto label : source_blobs) {
@@ -196,29 +269,15 @@ bool GameLogic::check_move(CoordinatesF source_f, CoordinatesF destination_f) {
   }
 
   if (source_total_blob_size >= 3) {
-    move_valid = true;
-  } else if (destination_total_blob_size >= 3) {
-    move_valid = true;
+    _board[source.x][source.y].animation = kDELETE;
+    mark_blobs_for_deletion(source_blobs);
+    _score += source_total_blob_size;
   }
-
-  std::cout << "valid=" << move_valid << std::endl;
-  return move_valid;
-}
-
-void GameLogic::execute_move(CoordinatesF source_f,
-                             CoordinatesF destination_f) {
-  std::swap(tile_at(source_f), tile_at(destination_f));
-
-  Coordinates source = {static_cast<int>(source_f.x),
-                        static_cast<int>(source_f.y)};
-  Coordinates destination = {static_cast<int>(destination_f.x),
-                             static_cast<int>(destination_f.y)};
-  auto source_blobs = get_neighbour_blobs(source, tile_at(destination_f).type);
-  auto destination_blobs =
-      get_neighbour_blobs(destination, tile_at(source_f).type);
-
-  mark_blobs_for_deletion(source_blobs);
-  mark_blobs_for_deletion(destination_blobs);
+  if (destination_total_blob_size >= 3) {
+    _board[destination.x][destination.y].animation = kDELETE;
+    mark_blobs_for_deletion(destination_blobs);
+    _score += destination_total_blob_size;
+  }
 }
 
 void GameLogic::label_blobs() {
@@ -263,13 +322,6 @@ void GameLogic::label_blobs() {
       }
     }
   } while (changed);
-
-  for (int x = 0; x < _board_width; x++) {
-    for (int y = 0; y < _board_height; y++) {
-      std::cout << _board[x][y].blob_label << " ";
-    }
-    std::cout << std::endl;
-  }
 }
 
 std::set<int> GameLogic::get_neighbour_blobs(Coordinates pos) {
@@ -322,6 +374,7 @@ std::set<int> GameLogic::get_past_neighbour_blobs(Coordinates pos,
 }
 
 int GameLogic::mark_blobs_for_deletion(std::set<int> marked_labels) {
+  std::cout << std::endl;
   for (auto &column : _board) {
     for (auto &tile : column) {
       if (marked_labels.find(tile.blob_label) != marked_labels.end()) {
