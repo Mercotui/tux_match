@@ -162,13 +162,13 @@ void GameLogic::evade_tile() {
   }
 
   // reset other tiles
-  if (_click_pos.x > 0) {
+  if (_click_pos.x >= 1) {
     tile_at({_click_pos.x - 1, _click_pos.y}).animation = kRETURN;
   }
   if (_click_pos.x < _board_width - 1) {
     tile_at({_click_pos.x + 1, _click_pos.y}).animation = kRETURN;
   }
-  if (_click_pos.y > 0) {
+  if (_click_pos.y >= 1) {
     tile_at({_click_pos.x, _click_pos.y - 1}).animation = kRETURN;
   }
   if (_click_pos.y < _board_height - 1) {
