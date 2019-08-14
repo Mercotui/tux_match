@@ -55,6 +55,13 @@ class GameLogic {
   int goal();
 
  private:
+  static constexpr float kEvadeThreshold = 0.9f;
+  static constexpr float kReturnSpeed = 0.8f;
+  static constexpr float kStationaryThreshold = 0.1f;
+  static constexpr float kFallSpeed = 0.2f;
+  static constexpr float kDeleteThreshold = 2.0f;
+  static constexpr int kBlobThreshold = 3;
+
   inline BoardTile &tile_at(CoordinatesF pos);
   void evade_tile();
   void swap_tile(Coordinates source, Coordinates destination);

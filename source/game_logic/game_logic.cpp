@@ -22,14 +22,15 @@ void GameLogic::mouse_click(float x, float y) {
 }
 
 void GameLogic::mouse_move(float x, float y) {
-  float x_clamped = std::clamp(x, 0.0f, 8.9f);
-  float y_clamped = std::clamp(y, 0.0f, 8.9f);
+  float x_clamped = std::max(fmodf(x, _board_height), 0.0f);
+  float y_clamped = std::max(fmodf(y, _board_height), 0.0f);
 
   BoardTile &tile = tile_at(_click_pos);
   tile.offset_x = std::clamp(x_clamped - _click_pos.x, -1.0f, 1.0f);
   tile.offset_y = std::clamp(y_clamped - _click_pos.y, -1.0f, 1.0f);
 
-  if (fabs(tile.offset_x) > 0.9f || fabs(tile.offset_y) > 0.9f) {
+  if (fabs(tile.offset_x) > kEvadeThreshold ||
+      fabs(tile.offset_y) > kEvadeThreshold) {
     evade_tile();
   }
 }
@@ -65,22 +66,23 @@ void GameLogic::physics_tick() {
         case kSTATIONARY:
           break;
         case kRETURN:
-          piece.offset_x *= 0.8f;
-          piece.offset_y *= 0.8f;
+          piece.offset_x *= kReturnSpeed;
+          piece.offset_y *= kReturnSpeed;
 
-          if (fabs(piece.offset_x) < 0.1f && fabs(piece.offset_y) < 0.1f) {
+          if (fabs(piece.offset_x) < kStationaryThreshold &&
+              fabs(piece.offset_y) < kStationaryThreshold) {
             piece.offset_x = 0.0f;
             piece.offset_y = 0.0f;
             piece.animation = kSTATIONARY;
           }
           break;
         case kFALL:
-          piece.offset_y -= 0.2f;
+          piece.offset_y -= kFallSpeed;
           break;
         case kDELETE:
         case kDELETE_DONE:
           piece.offset_x += 0.2f;
-          if (piece.offset_x > 2.0f) {
+          if (piece.offset_x > kDeleteThreshold) {
             piece.animation = kDELETE_DONE;
             deletes_done = true;
           }
@@ -238,9 +240,9 @@ bool GameLogic::check_move(CoordinatesF source_f, CoordinatesF destination_f) {
     destination_total_blob_size += _blob_histogram.at(label);
   }
 
-  if (source_total_blob_size >= 3) {
+  if (source_total_blob_size >= kBlobThreshold) {
     move_valid = true;
-  } else if (destination_total_blob_size >= 3) {
+  } else if (destination_total_blob_size >= kBlobThreshold) {
     move_valid = true;
   }
 
@@ -268,12 +270,12 @@ void GameLogic::execute_move(CoordinatesF source_f,
     destination_total_blob_size += _blob_histogram.at(label);
   }
 
-  if (source_total_blob_size >= 3) {
+  if (source_total_blob_size >= kBlobThreshold) {
     _board[source.x][source.y].animation = kDELETE;
     mark_blobs_for_deletion(source_blobs);
     _score += source_total_blob_size;
   }
-  if (destination_total_blob_size >= 3) {
+  if (destination_total_blob_size >= kBlobThreshold) {
     _board[destination.x][destination.y].animation = kDELETE;
     mark_blobs_for_deletion(destination_blobs);
     _score += destination_total_blob_size;
