@@ -34,16 +34,13 @@ class GameBoard {
 
   void drag_start(CoordinatesF pos);
   void drag_move(CoordinatesF pos);
-  void drag_release(CoordinatesF pos);
+  int drag_release_and_check_move(CoordinatesF pos);
   void physics_tick();
 
   void create_board();
   int width();
   int height();
   const std::vector<std::vector<BoardTile>> &game_board();
-
-  int score() { return _score; };
-  int goal() { return _goal; };
 
  private:
   static constexpr float kEvadeThreshold = 0.9f;
@@ -54,12 +51,13 @@ class GameBoard {
   static constexpr int kBlobThreshold = 3;
 
   BoardTile &tile_at(CoordinatesF pos);
+  CoordinatesF clamp_to_board(CoordinatesF pos);
   void evade_tile();
   void evade_cancel(Coordinates pos);
   void swap_tile(Coordinates source, Coordinates destination);
   void delete_and_replenish();
   bool check_move(Coordinates source, Coordinates destination);
-  void execute_move(Coordinates source, Coordinates destination);
+  int execute_move(Coordinates source, Coordinates destination);
   void label_blobs();
   void label_tile(int x, int y);
   std::set<int> get_neighbour_blobs(Coordinates pos);
@@ -75,8 +73,6 @@ class GameBoard {
   int _board_height;
   CoordinatesF _drag_start_pos;
   bool _board_tiles_changed;
-  int _goal;
-  int _score;
 };
 
 #endif  // GAME_BOARD_HPP

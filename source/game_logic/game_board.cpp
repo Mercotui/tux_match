@@ -15,18 +15,16 @@ GameBoard::GameBoard(int width, int height)
 GameBoard::~GameBoard() { ; }
 
 void GameBoard::drag_start(CoordinatesF pos) {
-  _drag_start_pos = {pos.x, pos.y};
+  _drag_start_pos = clamp_to_board(pos);
   tile_at(_drag_start_pos).animation = kSTATIONARY;
 }
 
 void GameBoard::drag_move(CoordinatesF pos) {
-  // limit dragging to board
-  float x_clamped = std::clamp(pos.x, 0.5f, _board_width - 0.5f);
-  float y_clamped = std::clamp(pos.y, 0.5f, _board_height - 0.5f);
+  CoordinatesF clamped_pos = clamp_to_board(pos);
 
   // limit dragging to 4 connected neigbours, by an arbitrary algorithm
-  float delta_x = x_clamped - _drag_start_pos.x;
-  float delta_y = y_clamped - _drag_start_pos.y;
+  float delta_x = clamped_pos.x - _drag_start_pos.x;
+  float delta_y = clamped_pos.y - _drag_start_pos.y;
   float delta_total = fabs(delta_x) + fabs(delta_y);
   float delta_factor = std::max(1.0f, delta_total - 0.2f);
   delta_x = std::clamp(delta_x / delta_factor, -1.0f, 1.0f);
@@ -46,34 +44,43 @@ void GameBoard::drag_move(CoordinatesF pos) {
   }
 }
 
-void GameBoard::drag_release(CoordinatesF pos) {
+int GameBoard::drag_release_and_check_move(CoordinatesF pos) {
   evade_cancel(_drag_start_pos);
+
+  CoordinatesF clamped_pos = clamp_to_board(pos);
   Coordinates source_tile = _drag_start_pos;
   Coordinates destination_tile = source_tile;
 
   // determine destination tile
-  float delta_x = pos.x - _drag_start_pos.x;
-  float delta_y = pos.y - _drag_start_pos.y;
+  float delta_x = clamped_pos.x - _drag_start_pos.x;
+  float delta_y = clamped_pos.y - _drag_start_pos.y;
   if (fabs(delta_x) > fabs(delta_y)) {
-    if (delta_x > 0) {
+    if (delta_x > 0.1f) {
       destination_tile.x++;
-    } else {
+    } else if (delta_x < -0.1f) {
       destination_tile.x--;
     }
   } else {
-    if (delta_y > 0) {
+    if (delta_y > 0.1f) {
       destination_tile.y++;
-    } else {
+    } else if (delta_y < -0.1f) {
       destination_tile.y--;
     }
   }
 
   // check and execute move
-  if (check_move(_drag_start_pos, destination_tile)) {
-    execute_move(_drag_start_pos, destination_tile);
+  int score = 0;
+  if (source_tile != destination_tile) {
+    if (check_move(_drag_start_pos, destination_tile)) {
+      score = execute_move(_drag_start_pos, destination_tile);
+    } else {
+      _board[_drag_start_pos.x][_drag_start_pos.y].animation = kRETURN;
+    }
   } else {
     _board[_drag_start_pos.x][_drag_start_pos.y].animation = kRETURN;
   }
+
+  return score;
 }
 
 void GameBoard::physics_tick() {
@@ -148,6 +155,12 @@ int GameBoard::height() { return _board_height; }
 
 const std::vector<std::vector<GameBoard::BoardTile>> &GameBoard::game_board() {
   return _board;
+}
+
+CoordinatesF GameBoard::clamp_to_board(CoordinatesF pos) {
+  // limit dragging to board
+  return {std::clamp(pos.x, 0.5f, _board_width - 0.5f),
+          std::clamp(pos.y, 0.5f, _board_height - 0.5f)};
 }
 
 GameBoard::BoardTile &GameBoard::tile_at(CoordinatesF pos) {
@@ -263,7 +276,7 @@ bool GameBoard::check_move(Coordinates source, Coordinates destination) {
   return move_valid;
 }
 
-void GameBoard::execute_move(Coordinates source, Coordinates destination) {
+int GameBoard::execute_move(Coordinates source, Coordinates destination) {
   swap_tile(source, destination);
   _board_tiles_changed = true;
 
@@ -279,16 +292,18 @@ void GameBoard::execute_move(Coordinates source, Coordinates destination) {
     destination_total_blob_size += _blob_histogram.at(label);
   }
 
+  int score = 0;
   if (source_total_blob_size >= kBlobThreshold) {
     _board[source.x][source.y].animation = kDELETE;
     mark_blobs_for_deletion(source_blobs);
-    _score += source_total_blob_size;
+    score += source_total_blob_size;
   }
   if (destination_total_blob_size >= kBlobThreshold) {
     _board[destination.x][destination.y].animation = kDELETE;
     mark_blobs_for_deletion(destination_blobs);
-    _score += destination_total_blob_size;
+    score += destination_total_blob_size;
   }
+  return score;
 }
 
 void GameBoard::label_blobs() {

@@ -12,7 +12,9 @@ void GameLogic::mouse_click(float x, float y) { _board.drag_start({x, y}); }
 
 void GameLogic::mouse_move(float x, float y) { _board.drag_move({x, y}); }
 
-void GameLogic::mouse_release(float x, float y) { _board.drag_release({x, y}); }
+void GameLogic::mouse_release(float x, float y) {
+  _score += _board.drag_release_and_check_move({x, y});
+}
 
 const GameBoard &GameLogic::game_board() { return _board; }
 
