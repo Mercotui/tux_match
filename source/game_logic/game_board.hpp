@@ -55,10 +55,11 @@ class GameBoard {
 
   BoardTile &tile_at(CoordinatesF pos);
   void evade_tile();
+  void evade_cancel(Coordinates pos);
   void swap_tile(Coordinates source, Coordinates destination);
   void delete_and_replenish();
-  bool check_move(CoordinatesF source, CoordinatesF destination);
-  void execute_move(CoordinatesF source, CoordinatesF destination);
+  bool check_move(Coordinates source, Coordinates destination);
+  void execute_move(Coordinates source, Coordinates destination);
   void label_blobs();
   void label_tile(int x, int y);
   std::set<int> get_neighbour_blobs(Coordinates pos);
