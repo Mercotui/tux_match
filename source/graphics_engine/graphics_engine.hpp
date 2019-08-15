@@ -74,7 +74,7 @@ class GraphicsEngine final : public QOpenGLWidget,
   GLuint _board_vertex_vbo;
   GLuint _board_params_vbo;
   GLuint _vertex_count;
-  std::map<GameLogic::PieceType, TextureCoords> _piece_texture_coords;
+  std::map<GameBoard::PieceType, TextureCoords> _piece_texture_coords;
   QOpenGLTexture *_pieces_texture;
   QOpenGLTexture *_background_texture;
   QOpenGLShaderProgram _program_background;

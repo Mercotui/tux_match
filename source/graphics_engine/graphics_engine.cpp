@@ -119,14 +119,14 @@ void GraphicsEngine::load_textures() {
 
   // build piece coords map
   float piece_width = 1.0f / 4;
-  _piece_texture_coords[GameLogic::kCHAMELEON].begin = piece_width * 0;
-  _piece_texture_coords[GameLogic::kCHAMELEON].end = piece_width * 1;
-  _piece_texture_coords[GameLogic::kTUX].begin = piece_width * 1;
-  _piece_texture_coords[GameLogic::kTUX].end = piece_width * 2;
-  _piece_texture_coords[GameLogic::kHAT].begin = piece_width * 2;
-  _piece_texture_coords[GameLogic::kHAT].end = piece_width * 3;
-  _piece_texture_coords[GameLogic::kWILDEBEEST].begin = piece_width * 3;
-  _piece_texture_coords[GameLogic::kWILDEBEEST].end = piece_width * 4;
+  _piece_texture_coords[GameBoard::kCHAMELEON].begin = piece_width * 0;
+  _piece_texture_coords[GameBoard::kCHAMELEON].end = piece_width * 1;
+  _piece_texture_coords[GameBoard::kTUX].begin = piece_width * 1;
+  _piece_texture_coords[GameBoard::kTUX].end = piece_width * 2;
+  _piece_texture_coords[GameBoard::kHAT].begin = piece_width * 2;
+  _piece_texture_coords[GameBoard::kHAT].end = piece_width * 3;
+  _piece_texture_coords[GameBoard::kWILDEBEEST].begin = piece_width * 3;
+  _piece_texture_coords[GameBoard::kWILDEBEEST].end = piece_width * 4;
 }
 
 void GraphicsEngine::generate_buffers() {
@@ -380,11 +380,11 @@ void GraphicsEngine::rebuild_board_vertex_buffer(int new_width,
 }
 
 void GraphicsEngine::rebuild_board_params_buffer() {
-  int max_size = std::max(_game_logic.width(), _game_logic.height());
+  GameBoard game_board = _game_logic.game_board();
+  int max_size = std::max(game_board.width(), game_board.height());
 
   std::vector<float> pieces_interleaved;
-  auto game_board = _game_logic.game_board();
-  for (auto column : game_board) {
+  for (auto column : game_board.game_board()) {
     for (auto piece : column) {
       // each piece consists of 6 vertices
       float offset_x = remap(-max_size, max_size, -2.0f, 2.0f, piece.offset_x);
