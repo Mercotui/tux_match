@@ -37,7 +37,8 @@ class GameBoard {
   int drag_release_and_check_move(CoordinatesF pos);
   void physics_tick();
 
-  void create_board();
+  void create();
+  void clear();
   int width();
   int height();
   const std::vector<std::vector<BoardTile>> &game_board();

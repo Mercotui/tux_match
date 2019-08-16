@@ -14,6 +14,10 @@ void GameLogic::mouse_move(float x, float y) { _board.drag_move({x, y}); }
 
 void GameLogic::mouse_release(float x, float y) {
   _score += _board.drag_release_and_check_move({x, y});
+  if (_score >= _goal) {
+    _board.clear();
+    _state = kLevelComplete;
+  }
 }
 
 const GameBoard &GameLogic::game_board() { return _board; }
@@ -21,3 +25,5 @@ const GameBoard &GameLogic::game_board() { return _board; }
 int GameLogic::goal() { return _goal; }
 
 int GameLogic::score() { return _score; }
+
+GameLogic::GameState GameLogic::game_state() { ; }

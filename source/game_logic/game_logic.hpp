@@ -10,6 +10,8 @@
 
 class GameLogic {
  public:
+  enum GameState { kPlaying = 0, kPaused, kLevelComplete };
+
   GameLogic();
   ~GameLogic();
 
@@ -25,9 +27,13 @@ class GameLogic {
 
   int score();
   int goal();
+  GameState game_state();
 
  private:
+  void level_complete();
+
   GameBoard _board;
+  GameState _state;
   CoordinatesF _click_pos;
   int _goal;
   int _score;

@@ -9,7 +9,7 @@ GameBoard::GameBoard(int width, int height)
       _board_width(width),
       _board_height(height),
       _board_tiles_changed(true) {
-  create_board();
+  create();
 }
 
 GameBoard::~GameBoard() { ; }
@@ -89,9 +89,10 @@ void GameBoard::physics_tick() {
     column.resize(_board_height);
     for (auto &piece : column) {
       switch (piece.animation) {
-        case kSTATIONARY:
+        case kSTATIONARY: {
           break;
-        case kRETURN:
+        }
+        case kRETURN: {
           piece.offset_x *= kReturnSpeed;
           piece.offset_y *= kReturnSpeed;
 
@@ -102,29 +103,36 @@ void GameBoard::physics_tick() {
             piece.animation = kSTATIONARY;
           }
           break;
-        case kFALL:
+        }
+        case kFALL: {
+          std::uniform_int_distribution<> random_distribution(0, 1000);
+          if (random_distribution(_random_generator) == 1) {
+            piece.offset_y = _board_height + 1;
+          }
           piece.offset_y -= kFallSpeed;
           break;
+        }
         case kDELETE:
-        case kDELETE_DONE:
+        case kDELETE_DONE: {
           piece.offset_x += 0.2f;
           if (piece.offset_x > kDeleteThreshold) {
             piece.animation = kDELETE_DONE;
             deletes_done = true;
           }
           break;
-        case kEVADE_UP:
-          piece.offset_y = std::max(piece.offset_y - 0.1f, -1.0f);
-          break;
-        case kEVADE_DOWN:
-          piece.offset_y = std::min(piece.offset_y + 0.1f, 1.0f);
-          break;
-        case kEVADE_LEFT:
-          piece.offset_x = std::max(piece.offset_x - 0.1f, -1.0f);
-          break;
-        case kEVADE_RIGHT:
-          piece.offset_x = std::min(piece.offset_x + 0.1f, 1.0f);
-          break;
+          case kEVADE_UP:
+            piece.offset_y = std::max(piece.offset_y - 0.1f, -1.0f);
+            break;
+          case kEVADE_DOWN:
+            piece.offset_y = std::min(piece.offset_y + 0.1f, 1.0f);
+            break;
+          case kEVADE_LEFT:
+            piece.offset_x = std::max(piece.offset_x - 0.1f, -1.0f);
+            break;
+          case kEVADE_RIGHT:
+            piece.offset_x = std::min(piece.offset_x + 0.1f, 1.0f);
+            break;
+        }
       }
     }
   }
@@ -133,7 +141,7 @@ void GameBoard::physics_tick() {
   }
 }
 
-void GameBoard::create_board() {
+void GameBoard::create() {
   std::uniform_int_distribution<> random_distribution(kTUX, kWILDEBEEST);
 
   _board.resize(_board_width);
@@ -145,6 +153,14 @@ void GameBoard::create_board() {
       piece.offset_x = 0;
       piece.offset_y = 0;
       piece.animation = kSTATIONARY;
+    }
+  }
+}
+
+void GameBoard::clear() {
+  for (auto &column : _board) {
+    for (auto &piece : column) {
+      piece.animation = kFALL;
     }
   }
 }
