@@ -275,9 +275,6 @@ void GraphicsEngine::resizeGL(int width, int height) {
   _view_height = height;
   glViewport(0, 0, width, height);
 
-  _mat_projection.setToIdentity();
-  // TODO: replace with perspective, or possibly intrinsic camera matrix
-  _mat_projection.ortho(-2.0f, +2.0f, -2.0f, +2.0f, 1.0f, 25.0f);
   _opengl_mutex.unlock();
 }
 
@@ -286,26 +283,27 @@ void GraphicsEngine::paintGL() {
     _opengl_mutex.lock();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // draw background
-    _program_background.bind();
-    _program_background.setUniformValue("score_mode", 1);
     float score = static_cast<float>(_game_logic.score()) /
                   static_cast<float>(_game_logic.goal());
-    _program_background.setUniformValue("score", score);
-    draw_background();
+    switch (_game_logic.game_state()) {
+      case GameLogic::kPlaying: {
+        draw_background(true, score);
+        draw_playfield();
+        break;
+      }
+      case GameLogic::kPaused: {
+        draw_background(false);
+        // draw_title();
+        break;
+      }
+      case GameLogic::kLevelComplete: {
+        draw_background(true, score);
+        draw_playfield();
+        // draw_title();
+        break;
+      }
+    }
 
-    // draw object
-    // QMatrix4x4 mat_modelview;
-    // mat_modelview.translate(_x_pos, _y_pos, -10.0);
-    // mat_modelview.scale(_scale_factor);
-    // mat_modelview.rotate(_x_rot, 1, 0, 0);
-    // mat_modelview.rotate(_y_rot, 0, 1, 0);
-    // mat_modelview.rotate(_z_rot, 0, 0, 1);
-    // mat_modelview = _mat_projection * mat_modelview;
-
-    // _program_board.bind();
-    // _program_board.setUniformValue("view_matrix", mat_modelview);
-    draw_playfield();
     _opengl_mutex.unlock();
   }
 }
@@ -422,11 +420,13 @@ void GraphicsEngine::rebuild_board_params_buffer() {
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void GraphicsEngine::draw_background() {
+void GraphicsEngine::draw_background(bool score_mode, float score_percentage) {
   _opengl_mutex.lock();
 
   glBindVertexArray(_background_vao);
   _program_background.bind();
+  _program_background.setUniformValue("score_mode", score_mode);
+  _program_background.setUniformValue("score", score_percentage);
   _background_texture->bind(GL_TEXTURE0);
   glDrawArrays(GL_TRIANGLES, 0, 6);
   _background_texture->release();

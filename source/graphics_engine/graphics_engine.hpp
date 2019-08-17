@@ -55,8 +55,8 @@ class GraphicsEngine final : public QOpenGLWidget,
   void compile_shaders();
   void rebuild_board_params_buffer();
   void rebuild_board_vertex_buffer(int new_width, int new_height);
+  void draw_background(bool score_mode, float score_percentage = 0.0f);
   void draw_playfield();
-  void draw_background();
 
   GameLogic _game_logic;
   int _game_width;
