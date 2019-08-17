@@ -37,7 +37,7 @@ class GraphicsEngine final : public QOpenGLWidget,
   QSize sizeHint() const;
 
  public slots:
-  void execute_frame();
+  void ExecuteFrame();
 
  protected:
   void mousePressEvent(QMouseEvent *event) override;
@@ -45,20 +45,20 @@ class GraphicsEngine final : public QOpenGLWidget,
   void mouseReleaseEvent(QMouseEvent *event) override;
 
  signals:
-  void initialized();
+  void Initialized();
 
  private:
-  float remap(float min_old, float max_old, float min_new, float max_new,
+  float Remap(float min_old, float max_old, float min_new, float max_new,
               float value);
-  QPointF coords_window_to_game(QPoint mouse_pos);
-  void load_textures();
-  void generate_buffers();
-  void compile_shaders();
-  void rebuild_board_params_buffer();
-  void rebuild_board_vertex_buffer(int new_width, int new_height);
-  void draw_background(bool score_mode, float score_percentage = 0.0f);
-  void draw_playfield();
-  void draw_title();
+  QPointF CoordsWindowToGame(QPoint mouse_pos);
+  void LoadTextures();
+  void GenerateBuffers();
+  void CompileShaders();
+  void RebuildBoardParamsBuffer();
+  void RebuildBoardVertexBuffer(int new_width, int new_height);
+  void DrawBackground(bool score_mode, float score_percentage = 0.0f);
+  void DrawPlayfield();
+  void DrawTitle();
 
   static constexpr int kFPS = 60;
   static constexpr float kTitleRotationRange = 5.0f;

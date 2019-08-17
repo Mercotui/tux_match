@@ -33,16 +33,16 @@ class GameBoard {
   GameBoard(int width, int height);
   ~GameBoard();
 
-  void drag_start(CoordinatesF pos);
-  void drag_move(CoordinatesF pos);
-  int drag_release_and_check_move(CoordinatesF pos);
-  void physics_tick();
+  void DragStart(CoordinatesF pos);
+  void DragMove(CoordinatesF pos);
+  int DragReleaseAndCheckMove(CoordinatesF pos);
+  void PhysicsTick();
 
-  void create(int width, int height);
+  void Create(int width, int height);
   void clear();
   int width();
   int height();
-  const std::vector<std::vector<BoardTile>> &game_board();
+  const std::vector<std::vector<BoardTile>> &board();
 
  private:
   static constexpr float kEvadeThreshold = 0.9f;
@@ -52,21 +52,20 @@ class GameBoard {
   static constexpr float kDeleteThreshold = 2.0f;
   static constexpr int kBlobThreshold = 3;
 
-  BoardTile &tile_at(CoordinatesF pos);
-  CoordinatesF clamp_to_board(CoordinatesF pos);
-  void evade_tile();
-  void evade_cancel(Coordinates pos);
-  void swap_tile(Coordinates source, Coordinates destination);
-  void delete_and_replenish();
-  bool check_move(Coordinates source, Coordinates destination);
-  int execute_move(Coordinates source, Coordinates destination);
-  void label_blobs();
-  void label_tile(int x, int y);
-  std::set<int> get_neighbour_blobs(Coordinates pos);
-  std::set<int> get_neighbour_blobs(Coordinates pos, PieceType type);
-  std::set<int> get_past_neighbour_blobs(Coordinates pos);
-  std::set<int> get_past_neighbour_blobs(Coordinates pos, PieceType type);
-  int mark_blobs_for_deletion(std::set<int> marked_labels);
+  BoardTile &TileAt(CoordinatesF pos);
+  CoordinatesF ClampToBoard(CoordinatesF pos);
+  void EvadeTile();
+  void EvadeCancel(Coordinates pos);
+  void SwapTile(Coordinates source, Coordinates destination);
+  void DeleteAndReplenish();
+  bool CheckMove(Coordinates source, Coordinates destination);
+  int ExecuteMove(Coordinates source, Coordinates destination);
+  void LabelBlobs();
+  std::set<int> GetNeighbourBlobs(Coordinates pos);
+  std::set<int> GetNeighbourBlobs(Coordinates pos, PieceType type);
+  std::set<int> GetPastNeighbourBlobs(Coordinates pos);
+  std::set<int> GetPastNeighbourBlobs(Coordinates pos, PieceType type);
+  int MarkBlobsForDeletion(std::set<int> marked_labels);
 
   std::vector<std::vector<BoardTile>> _board;
   std::vector<int> _blob_histogram;

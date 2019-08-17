@@ -10,18 +10,18 @@ GameBoard::GameBoard(int width, int height)
       _board_width(width),
       _board_height(height),
       _board_tiles_changed(true) {
-  create(width, height);
+  Create(width, height);
 }
 
 GameBoard::~GameBoard() { ; }
 
-void GameBoard::drag_start(CoordinatesF pos) {
-  _drag_start_pos = clamp_to_board(pos);
-  tile_at(_drag_start_pos).animation = kStationary;
+void GameBoard::DragStart(CoordinatesF pos) {
+  _drag_start_pos = ClampToBoard(pos);
+  TileAt(_drag_start_pos).animation = kStationary;
 }
 
-void GameBoard::drag_move(CoordinatesF pos) {
-  CoordinatesF clamped_pos = clamp_to_board(pos);
+void GameBoard::DragMove(CoordinatesF pos) {
+  CoordinatesF clamped_pos = ClampToBoard(pos);
 
   // limit dragging to 4 connected neigbours, by an arbitrary algorithm
   float delta_x = clamped_pos.x - _drag_start_pos.x;
@@ -32,23 +32,23 @@ void GameBoard::drag_move(CoordinatesF pos) {
   delta_y = std::clamp(delta_y / delta_factor, -1.0f, 1.0f);
 
   // assign dragging offset
-  BoardTile &tile = tile_at(_drag_start_pos);
+  BoardTile &tile = TileAt(_drag_start_pos);
   tile.offset_x = delta_x;
   tile.offset_y = delta_y;
 
   // see if evading should happen
   if (fabs(tile.offset_x) > kEvadeThreshold ||
       fabs(tile.offset_y) > kEvadeThreshold) {
-    evade_tile();
+    EvadeTile();
   } else {
-    evade_cancel(_drag_start_pos);
+    EvadeCancel(_drag_start_pos);
   }
 }
 
-int GameBoard::drag_release_and_check_move(CoordinatesF pos) {
-  evade_cancel(_drag_start_pos);
+int GameBoard::DragReleaseAndCheckMove(CoordinatesF pos) {
+  EvadeCancel(_drag_start_pos);
 
-  CoordinatesF clamped_pos = clamp_to_board(pos);
+  CoordinatesF clamped_pos = ClampToBoard(pos);
   Coordinates source_tile = _drag_start_pos;
   Coordinates destination_tile = source_tile;
 
@@ -72,8 +72,8 @@ int GameBoard::drag_release_and_check_move(CoordinatesF pos) {
   // check and execute move
   int score = 0;
   if (source_tile != destination_tile) {
-    if (check_move(_drag_start_pos, destination_tile)) {
-      score = execute_move(_drag_start_pos, destination_tile);
+    if (CheckMove(_drag_start_pos, destination_tile)) {
+      score = ExecuteMove(_drag_start_pos, destination_tile);
     } else {
       _board[_drag_start_pos.x][_drag_start_pos.y].animation = kReturn;
     }
@@ -84,7 +84,7 @@ int GameBoard::drag_release_and_check_move(CoordinatesF pos) {
   return score;
 }
 
-void GameBoard::physics_tick() {
+void GameBoard::PhysicsTick() {
   bool deletes_done = false;
   for (auto &column : _board) {
     column.resize(_board_height);
@@ -138,11 +138,11 @@ void GameBoard::physics_tick() {
     }
   }
   if (deletes_done) {
-    delete_and_replenish();
+    DeleteAndReplenish();
   }
 }
 
-void GameBoard::create(int width, int height) {
+void GameBoard::Create(int width, int height) {
   _board_width = width;
   _board_height = height;
   std::uniform_int_distribution<> random_distribution(kTux, kWildebeest);
@@ -172,22 +172,22 @@ int GameBoard::width() { return _board_width; }
 
 int GameBoard::height() { return _board_height; }
 
-const std::vector<std::vector<GameBoard::BoardTile>> &GameBoard::game_board() {
+const std::vector<std::vector<GameBoard::BoardTile>> &GameBoard::board() {
   return _board;
 }
 
-CoordinatesF GameBoard::clamp_to_board(CoordinatesF pos) {
+CoordinatesF GameBoard::ClampToBoard(CoordinatesF pos) {
   // limit dragging to board
   return {std::clamp(pos.x, 0.5f, _board_width - 0.5f),
           std::clamp(pos.y, 0.5f, _board_height - 0.5f)};
 }
 
-GameBoard::BoardTile &GameBoard::tile_at(CoordinatesF pos) {
+GameBoard::BoardTile &GameBoard::TileAt(CoordinatesF pos) {
   return _board.at(static_cast<int>(pos.x)).at(static_cast<int>(pos.y));
 }
 
-void GameBoard::evade_tile() {
-  BoardTile &tile = tile_at(_drag_start_pos);
+void GameBoard::EvadeTile() {
+  BoardTile &tile = TileAt(_drag_start_pos);
   Animation evade_animation;
   CoordinatesF evading_tile = _drag_start_pos;
 
@@ -210,12 +210,12 @@ void GameBoard::evade_tile() {
     }
   }
   // reset other tiles
-  evade_cancel(_drag_start_pos);
+  EvadeCancel(_drag_start_pos);
 
-  tile_at(evading_tile).animation = evade_animation;
+  TileAt(evading_tile).animation = evade_animation;
 }
 
-void GameBoard::evade_cancel(Coordinates pos) {
+void GameBoard::EvadeCancel(Coordinates pos) {
   if (pos.x >= 1) {
     _board[pos.x - 1][pos.y].animation = kReturn;
   }
@@ -230,7 +230,7 @@ void GameBoard::evade_cancel(Coordinates pos) {
   }
 }
 
-void GameBoard::swap_tile(Coordinates source, Coordinates destination) {
+void GameBoard::SwapTile(Coordinates source, Coordinates destination) {
   int delta_x = source.x - destination.x;
   int delta_y = source.y - destination.y;
   _board[source.x][source.y].offset_x += delta_x;
@@ -240,7 +240,7 @@ void GameBoard::swap_tile(Coordinates source, Coordinates destination) {
   std::swap(_board[source.x][source.y], _board[destination.x][destination.y]);
 }
 
-void GameBoard::delete_and_replenish() {
+void GameBoard::DeleteAndReplenish() {
   std::uniform_int_distribution<> random_distribution(kTux, kWildebeest);
   BoardTile new_tile = {0, 0, kTux, kReturn, 0};
 
@@ -265,17 +265,17 @@ void GameBoard::delete_and_replenish() {
   }
 }
 
-bool GameBoard::check_move(Coordinates source, Coordinates destination) {
+bool GameBoard::CheckMove(Coordinates source, Coordinates destination) {
   bool move_valid = false;
   if (_board_tiles_changed) {
-    label_blobs();
+    LabelBlobs();
     _board_tiles_changed = false;
   }
 
   auto source_blobs =
-      get_neighbour_blobs(source, _board[destination.x][destination.x].type);
+      GetNeighbourBlobs(source, _board[destination.x][destination.x].type);
   auto destination_blobs =
-      get_neighbour_blobs(destination, _board[source.x][source.y].type);
+      GetNeighbourBlobs(destination, _board[source.x][source.y].type);
 
   int source_total_blob_size = 0;
   for (auto label : source_blobs) {
@@ -295,12 +295,12 @@ bool GameBoard::check_move(Coordinates source, Coordinates destination) {
   return move_valid;
 }
 
-int GameBoard::execute_move(Coordinates source, Coordinates destination) {
-  swap_tile(source, destination);
+int GameBoard::ExecuteMove(Coordinates source, Coordinates destination) {
+  SwapTile(source, destination);
   _board_tiles_changed = true;
 
-  auto source_blobs = get_neighbour_blobs(source);
-  auto destination_blobs = get_neighbour_blobs(destination);
+  auto source_blobs = GetNeighbourBlobs(source);
+  auto destination_blobs = GetNeighbourBlobs(destination);
 
   int source_total_blob_size = 1;
   for (auto label : source_blobs) {
@@ -314,18 +314,18 @@ int GameBoard::execute_move(Coordinates source, Coordinates destination) {
   int score = 0;
   if (source_total_blob_size >= kBlobThreshold) {
     _board[source.x][source.y].animation = kDelete;
-    mark_blobs_for_deletion(source_blobs);
+    MarkBlobsForDeletion(source_blobs);
     score += source_total_blob_size;
   }
   if (destination_total_blob_size >= kBlobThreshold) {
     _board[destination.x][destination.y].animation = kDelete;
-    mark_blobs_for_deletion(destination_blobs);
+    MarkBlobsForDeletion(destination_blobs);
     score += destination_total_blob_size;
   }
   return score;
 }
 
-void GameBoard::label_blobs() {
+void GameBoard::LabelBlobs() {
   // This is a naive labeling algorithm that loops through the 2D board multiple
   // times. As this only happens when the user attempts a move AND the playing
   // field has changed since last attempt, it should not be a performance
@@ -335,7 +335,7 @@ void GameBoard::label_blobs() {
   int blob_label = 0;
   for (int x = 0; x < _board_width; x++) {
     for (int y = 0; y < _board_height; y++) {
-      auto neighbours = get_past_neighbour_blobs({x, y});
+      auto neighbours = GetPastNeighbourBlobs({x, y});
       auto lowest_neighbour_label = neighbours.cbegin();
       if (lowest_neighbour_label != neighbours.cend()) {
         _board[x][y].blob_label = *lowest_neighbour_label;
@@ -355,7 +355,7 @@ void GameBoard::label_blobs() {
 
     for (int x = 0; x < _board_width; x++) {
       for (int y = 0; y < _board_height; y++) {
-        auto neighbours = get_neighbour_blobs({x, y});
+        auto neighbours = GetNeighbourBlobs({x, y});
         auto lowest_neighbour_label = neighbours.cbegin();
         if (lowest_neighbour_label != neighbours.cend()) {
           if (*lowest_neighbour_label < _board[x][y].blob_label) {
@@ -369,11 +369,11 @@ void GameBoard::label_blobs() {
   } while (changed);
 }
 
-std::set<int> GameBoard::get_neighbour_blobs(Coordinates pos) {
-  return get_neighbour_blobs(pos, _board[pos.x][pos.y].type);
+std::set<int> GameBoard::GetNeighbourBlobs(Coordinates pos) {
+  return GetNeighbourBlobs(pos, _board[pos.x][pos.y].type);
 }
 
-std::set<int> GameBoard::get_neighbour_blobs(Coordinates pos, PieceType type) {
+std::set<int> GameBoard::GetNeighbourBlobs(Coordinates pos, PieceType type) {
   std::set<int> ret;
   if (pos.x > 0) {
     if (_board[pos.x - 1][pos.y].type == type) {
@@ -398,11 +398,11 @@ std::set<int> GameBoard::get_neighbour_blobs(Coordinates pos, PieceType type) {
   return ret;
 }
 
-std::set<int> GameBoard::get_past_neighbour_blobs(Coordinates pos) {
-  return get_past_neighbour_blobs(pos, _board[pos.x][pos.y].type);
+std::set<int> GameBoard::GetPastNeighbourBlobs(Coordinates pos) {
+  return GetPastNeighbourBlobs(pos, _board[pos.x][pos.y].type);
 }
 
-std::set<int> GameBoard::get_past_neighbour_blobs(Coordinates pos,
+std::set<int> GameBoard::GetPastNeighbourBlobs(Coordinates pos,
                                                   PieceType type) {
   std::set<int> ret;
   if (pos.x > 0) {
@@ -418,7 +418,7 @@ std::set<int> GameBoard::get_past_neighbour_blobs(Coordinates pos,
   return ret;
 }
 
-int GameBoard::mark_blobs_for_deletion(std::set<int> marked_labels) {
+int GameBoard::MarkBlobsForDeletion(std::set<int> marked_labels) {
   for (auto &column : _board) {
     for (auto &tile : column) {
       if (marked_labels.find(tile.blob_label) != marked_labels.end()) {

@@ -15,23 +15,20 @@ class GameLogic {
   GameLogic();
   ~GameLogic();
 
-  void mouse_click(float x, float y);
-  void mouse_move(float x, float y);
-  void mouse_release(float x, float y);
-  void physics_tick() { _board.physics_tick(); }
+  void MouseClick(float x, float y);
+  void MouseMove(float x, float y);
+  void MouseRelease(float x, float y);
+  void PhysicsTick() { _board.PhysicsTick(); }
 
-  void create_board();
   int width() { return _board.width(); }
   int height() { return _board.height(); }
-  const GameBoard &game_board();
+  const GameBoard &board();
 
   int score();
   int goal();
-  GameState game_state();
+  GameState state();
 
  private:
-  void level_complete();
-
   GameBoard _board;
   GameState _state;
   CoordinatesF _click_pos;

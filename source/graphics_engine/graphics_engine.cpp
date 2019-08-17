@@ -32,7 +32,7 @@ GraphicsEngine::GraphicsEngine(QWidget *parent)
   Q_INIT_RESOURCE(GL_shaders);
 
   _frame_timer.setInterval(1.0f / kFPS);
-  connect(&_frame_timer, SIGNAL(timeout()), this, SLOT(execute_frame()));
+  connect(&_frame_timer, SIGNAL(timeout()), this, SLOT(ExecuteFrame()));
   _frame_timer.start();
 }
 
@@ -42,41 +42,43 @@ QSize GraphicsEngine::minimumSizeHint() const { return QSize(600, 600); }
 
 QSize GraphicsEngine::sizeHint() const { return QSize(600, 600); }
 
-void GraphicsEngine::execute_frame() {
-  _game_logic.physics_tick();
+void GraphicsEngine::ExecuteFrame() {
+  _game_logic.PhysicsTick();
   ++_tick;
   update();
 }
 
 void GraphicsEngine::mousePressEvent(QMouseEvent *event) {
   if (event->button() == Qt::LeftButton) {
-    QPointF mouse_coords = coords_window_to_game(event->pos());
-    _game_logic.mouse_click(mouse_coords.x(), mouse_coords.y());
-  }
-}
-void GraphicsEngine::mouseMoveEvent(QMouseEvent *event) {
-  if (event->buttons().testFlag(Qt::LeftButton)) {
-    QPointF mouse_coords = coords_window_to_game(event->pos());
-    _game_logic.mouse_move(mouse_coords.x(), mouse_coords.y());
-  }
-}
-void GraphicsEngine::mouseReleaseEvent(QMouseEvent *event) {
-  if (event->button() == Qt::LeftButton) {
-    QPointF mouse_coords = coords_window_to_game(event->pos());
-    _game_logic.mouse_release(mouse_coords.x(), mouse_coords.y());
+    QPointF mouse_coords = CoordsWindowToGame(event->pos());
+    _game_logic.MouseClick(mouse_coords.x(), mouse_coords.y());
   }
 }
 
-float GraphicsEngine::remap(float min_old, float max_old, float min_new,
+void GraphicsEngine::mouseMoveEvent(QMouseEvent *event) {
+  if (event->buttons().testFlag(Qt::LeftButton)) {
+    QPointF mouse_coords = CoordsWindowToGame(event->pos());
+    _game_logic.MouseMove(mouse_coords.x(), mouse_coords.y());
+  }
+}
+
+void GraphicsEngine::mouseReleaseEvent(QMouseEvent *event) {
+  if (event->button() == Qt::LeftButton) {
+    QPointF mouse_coords = CoordsWindowToGame(event->pos());
+    _game_logic.MouseRelease(mouse_coords.x(), mouse_coords.y());
+  }
+}
+
+float GraphicsEngine::Remap(float min_old, float max_old, float min_new,
                             float max_new, float value) {
   return (min_new +
           (value - min_old) * (max_new - min_new) / (max_old - min_old));
 }
 
-QPointF GraphicsEngine::coords_window_to_game(QPoint mouse_pos) {
+QPointF GraphicsEngine::CoordsWindowToGame(QPoint mouse_pos) {
   int max_size = std::max(_game_width, _game_height);
-  float mouse_x = remap(0, _view_width, 0, max_size, mouse_pos.x());
-  float mouse_y = max_size - remap(0, _view_height, 0, max_size, mouse_pos.y());
+  float mouse_x = Remap(0, _view_width, 0, max_size, mouse_pos.x());
+  float mouse_y = max_size - Remap(0, _view_height, 0, max_size, mouse_pos.y());
 
   float x_centering_offset = ((max_size - _game_width) / 2);
   float y_centering_offset = ((max_size - _game_height) / 2);
@@ -95,9 +97,9 @@ void GraphicsEngine::initializeGL() {
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-  load_textures();
-  compile_shaders();
-  generate_buffers();
+  LoadTextures();
+  CompileShaders();
+  GenerateBuffers();
 
   // setup projection matrix
   _mat_projection.ortho(-2.0f, +2.0f, -2.0f, +2.0f, 1.0f, 25.0f);
@@ -105,10 +107,10 @@ void GraphicsEngine::initializeGL() {
   _is_initialized = true;
   _opengl_mutex.unlock();
 
-  emit initialized();
+  emit Initialized();
 }
 
-void GraphicsEngine::load_textures() {
+void GraphicsEngine::LoadTextures() {
   _background_texture = new QOpenGLTexture(QImage(":/images/tux_square.png"));
   _background_texture->setMinificationFilter(QOpenGLTexture::Linear);
   _background_texture->setMagnificationFilter(QOpenGLTexture::Linear);
@@ -136,7 +138,7 @@ void GraphicsEngine::load_textures() {
   _piece_texture_coords[GameBoard::kWildebeest].end = piece_width * 4;
 }
 
-void GraphicsEngine::generate_buffers() {
+void GraphicsEngine::GenerateBuffers() {
   _opengl_mutex.lock();
   // setup background vao
   {
@@ -269,7 +271,7 @@ void GraphicsEngine::generate_buffers() {
   _opengl_mutex.unlock();
 }
 
-void GraphicsEngine::compile_shaders() {
+void GraphicsEngine::CompileShaders() {
   _opengl_mutex.lock();
   // background shaders
   {
@@ -355,21 +357,21 @@ void GraphicsEngine::paintGL() {
 
     float score = static_cast<float>(_game_logic.score()) /
                   static_cast<float>(_game_logic.goal());
-    switch (_game_logic.game_state()) {
+    switch (_game_logic.state()) {
       case GameLogic::kPlaying: {
-        draw_background(true, score);
-        draw_playfield();
+        DrawBackground(true, score);
+        DrawPlayfield();
         break;
       }
       case GameLogic::kPaused: {
-        draw_background(false);
-        draw_title();
+        DrawBackground(false);
+        DrawTitle();
         break;
       }
       case GameLogic::kLevelComplete: {
-        draw_background(true, score);
-        draw_playfield();
-        draw_title();
+        DrawBackground(true, score);
+        DrawPlayfield();
+        DrawTitle();
         break;
       }
     }
@@ -378,18 +380,18 @@ void GraphicsEngine::paintGL() {
   }
 }
 
-void GraphicsEngine::draw_playfield() {
+void GraphicsEngine::DrawPlayfield() {
   _opengl_mutex.lock();
 
   int new_width = _game_logic.width();
   int new_height = _game_logic.height();
   if (new_width != _game_width || new_height != _game_height) {
-    rebuild_board_vertex_buffer(new_width, new_height);
+    RebuildBoardVertexBuffer(new_width, new_height);
     _game_width = new_width;
     _game_height = new_height;
   }
 
-  rebuild_board_params_buffer();
+  RebuildBoardParamsBuffer();
 
   glBindVertexArray(_board_vao);
   _program_board.bind();
@@ -402,8 +404,7 @@ void GraphicsEngine::draw_playfield() {
   _opengl_mutex.unlock();
 }
 
-void GraphicsEngine::rebuild_board_vertex_buffer(int new_width,
-                                                 int new_height) {
+void GraphicsEngine::RebuildBoardVertexBuffer(int new_width, int new_height) {
   int max_size = std::max(new_width, new_height);
   float piece_size = 2.0f / max_size;
   float x_centering_offset = ((piece_size * new_width) / 2);
@@ -447,16 +448,16 @@ void GraphicsEngine::rebuild_board_vertex_buffer(int new_width,
   _opengl_mutex.unlock();
 }
 
-void GraphicsEngine::rebuild_board_params_buffer() {
-  GameBoard game_board = _game_logic.game_board();
+void GraphicsEngine::RebuildBoardParamsBuffer() {
+  GameBoard game_board = _game_logic.board();
   int max_size = std::max(game_board.width(), game_board.height());
 
   std::vector<float> pieces_interleaved;
-  for (auto column : game_board.game_board()) {
+  for (auto column : game_board.board()) {
     for (auto piece : column) {
       // each piece consists of 6 vertices
-      float offset_x = remap(-max_size, max_size, -2.0f, 2.0f, piece.offset_x);
-      float offset_y = remap(-max_size, max_size, -2.0f, 2.0f, piece.offset_y);
+      float offset_x = Remap(-max_size, max_size, -2.0f, 2.0f, piece.offset_x);
+      float offset_y = Remap(-max_size, max_size, -2.0f, 2.0f, piece.offset_y);
       float offset_z = 0;
       float is_gold = 0.0f;
       TextureCoords tex_coords = _piece_texture_coords[piece.type];
@@ -490,7 +491,7 @@ void GraphicsEngine::rebuild_board_params_buffer() {
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void GraphicsEngine::draw_background(bool score_mode, float score_percentage) {
+void GraphicsEngine::DrawBackground(bool score_mode, float score_percentage) {
   _opengl_mutex.lock();
 
   glBindVertexArray(_background_vao);
@@ -506,7 +507,7 @@ void GraphicsEngine::draw_background(bool score_mode, float score_percentage) {
   _opengl_mutex.unlock();
 }
 
-void GraphicsEngine::draw_title() {
+void GraphicsEngine::DrawTitle() {
   float hover = sin(static_cast<float>(_tick) / (kTitleHoverPeriod * kFPS)) *
                 kTitleHoverRange;
   hover += kTitleHoverAt;
