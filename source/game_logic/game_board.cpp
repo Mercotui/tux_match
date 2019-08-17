@@ -147,8 +147,8 @@ void GameBoard::Create(int width, int height) {
       piece.type =
           static_cast<PieceType>(random_distribution(_random_generator));
       piece.offset_x = 0;
-      piece.offset_y = 0;
-      piece.animation = kStationary;
+      piece.offset_y = height;
+      piece.animation = kReturn;
     }
   }
 }
