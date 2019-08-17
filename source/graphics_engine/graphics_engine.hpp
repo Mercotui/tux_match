@@ -1,7 +1,7 @@
 // graphics_engine.h
 
-#ifndef GRAPHICS_ENGINE_HPP
-#define GRAPHICS_ENGINE_HPP
+#ifndef SOURCE_GRAPHICS_ENGINE_GRAPHICS_ENGINE_HPP_
+#define SOURCE_GRAPHICS_ENGINE_GRAPHICS_ENGINE_HPP_
 
 #include <QMutex>
 #include <QOpenGLExtraFunctions>
@@ -13,6 +13,7 @@
 #include <QTimer>
 #include <QVector2D>
 #include <QVector3D>
+#include <map>
 
 #include "game_logic/game_logic.hpp"
 
@@ -25,7 +26,7 @@ class GraphicsEngine final : public QOpenGLWidget,
                              protected QOpenGLExtraFunctions {
   Q_OBJECT
  public:
-  GraphicsEngine(QWidget *parent = 0);
+  explicit GraphicsEngine(QWidget *parent = 0);
   ~GraphicsEngine();
 
   // QOpenGLWidget reimplemented functions
@@ -94,4 +95,4 @@ class GraphicsEngine final : public QOpenGLWidget,
   QOpenGLShaderProgram _program_title;
 };
 
-#endif  // GRAPHICS_ENGINE_HPP
+#endif  // SOURCE_GRAPHICS_ENGINE_GRAPHICS_ENGINE_HPP_

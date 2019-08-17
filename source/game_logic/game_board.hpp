@@ -1,8 +1,9 @@
-#ifndef GAME_BOARD_HPP
-#define GAME_BOARD_HPP
+#ifndef SOURCE_GAME_LOGIC_GAME_BOARD_HPP_
+#define SOURCE_GAME_LOGIC_GAME_BOARD_HPP_
 
 #include <random>
 #include <set>
+#include <vector>
 
 #include "coordinates.hpp"
 
@@ -76,4 +77,4 @@ class GameBoard {
   bool _board_tiles_changed;
 };
 
-#endif  // GAME_BOARD_HPP
+#endif  // SOURCE_GAME_LOGIC_GAME_BOARD_HPP_

@@ -1,9 +1,10 @@
-#ifndef COORDINATES_HPP
-#define COORDINATES_HPP
+#ifndef SOURCE_GAME_LOGIC_COORDINATES_HPP_
+#define SOURCE_GAME_LOGIC_COORDINATES_HPP_
 
 class Coordinates {
  public:
-  Coordinates(int x = 0, int y = 0) : x(x), y(y){};
+  Coordinates() : x(0), y(0) {}
+  Coordinates(int x, int y) : x(x), y(y) {}
   bool operator==(const Coordinates& b) const { return x == b.x && y == b.y; }
   bool operator!=(const Coordinates& b) const { return x != b.x || y != b.y; }
 
@@ -13,7 +14,8 @@ class Coordinates {
 
 class CoordinatesF {
  public:
-  CoordinatesF(float x = 0, float y = 0) : x(x), y(y){};
+  CoordinatesF() : x(0.0f), y(0.0f) {}
+  CoordinatesF(float x, float y) : x(x), y(y) {}
   bool operator==(const CoordinatesF& b) const { return x == b.x && y == b.y; }
   bool operator!=(const CoordinatesF& b) const { return x != b.x || y != b.y; }
   operator Coordinates() { return {static_cast<int>(x), static_cast<int>(y)}; }
@@ -22,4 +24,4 @@ class CoordinatesF {
   float y;
 };
 
-#endif  // COORDINATES_HPP
+#endif  // SOURCE_GAME_LOGIC_COORDINATES_HPP_

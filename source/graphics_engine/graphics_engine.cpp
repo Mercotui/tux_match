@@ -9,8 +9,9 @@
 #include <QTemporaryFile>
 #include <QVector2D>
 #include <QVector3D>
-
+#include <algorithm>
 #include <iostream>
+#include <vector>
 
 #ifdef ANDROID
 #include <GLES3/gl3.h>

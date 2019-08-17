@@ -1,5 +1,5 @@
-#ifndef GAME_LOGIC_HPP
-#define GAME_LOGIC_HPP
+#ifndef SOURCE_GAME_LOGIC_GAME_LOGIC_HPP_
+#define SOURCE_GAME_LOGIC_GAME_LOGIC_HPP_
 
 #include <random>
 #include <set>
@@ -18,11 +18,11 @@ class GameLogic {
   void mouse_click(float x, float y);
   void mouse_move(float x, float y);
   void mouse_release(float x, float y);
-  void physics_tick() { _board.physics_tick(); };
+  void physics_tick() { _board.physics_tick(); }
 
   void create_board();
-  int width() { return _board.width(); };
-  int height() { return _board.height(); };
+  int width() { return _board.width(); }
+  int height() { return _board.height(); }
   const GameBoard &game_board();
 
   int score();
@@ -39,4 +39,4 @@ class GameLogic {
   int _score;
 };
 
-#endif  // GAME_LOGIC_HPP
+#endif  // SOURCE_GAME_LOGIC_GAME_LOGIC_HPP_

@@ -4,11 +4,9 @@
 #include <array>
 #include <iostream>
 
-GameLogic::GameLogic() : _board(9, 9), _state(kPaused), _goal(50), _score(0) {
-  ;
-}
+GameLogic::GameLogic() : _board(9, 9), _state(kPaused), _goal(50), _score(0) {}
 
-GameLogic::~GameLogic() { ; }
+GameLogic::~GameLogic() {}
 
 void GameLogic::mouse_click(float x, float y) {
   if (_state == kPlaying) {

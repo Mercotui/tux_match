@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <iostream>
+#include <utility>
 
 GameBoard::GameBoard(int width, int height)
     : _random_generator(),
