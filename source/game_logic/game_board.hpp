@@ -9,17 +9,17 @@
 
 class GameBoard {
  public:
-  enum PieceType { kTUX = 0, kHAT, kCHAMELEON, kWILDEBEEST };
+  enum PieceType { kTux = 0, kHat, kChameleon, kWildebeest };
   enum Animation {
-    kSTATIONARY = 0,
-    kRETURN,
-    kFALL,
-    kDELETE,
-    kDELETE_DONE,
-    kEVADE_UP,
-    kEVADE_DOWN,
-    kEVADE_LEFT,
-    kEVADE_RIGHT,
+    kStationary = 0,
+    kReturn,
+    kFall,
+    kDelete,
+    kDeleteDone,
+    kEvadeUp,
+    kEvadeDown,
+    kEvadeLeft,
+    kEvadeRight,
   };
 
   typedef struct {

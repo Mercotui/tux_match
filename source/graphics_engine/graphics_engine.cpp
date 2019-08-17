@@ -126,14 +126,14 @@ void GraphicsEngine::load_textures() {
 
   // build piece coords map
   float piece_width = 1.0f / 4;
-  _piece_texture_coords[GameBoard::kCHAMELEON].begin = piece_width * 0;
-  _piece_texture_coords[GameBoard::kCHAMELEON].end = piece_width * 1;
-  _piece_texture_coords[GameBoard::kTUX].begin = piece_width * 1;
-  _piece_texture_coords[GameBoard::kTUX].end = piece_width * 2;
-  _piece_texture_coords[GameBoard::kHAT].begin = piece_width * 2;
-  _piece_texture_coords[GameBoard::kHAT].end = piece_width * 3;
-  _piece_texture_coords[GameBoard::kWILDEBEEST].begin = piece_width * 3;
-  _piece_texture_coords[GameBoard::kWILDEBEEST].end = piece_width * 4;
+  _piece_texture_coords[GameBoard::kChameleon].begin = piece_width * 0;
+  _piece_texture_coords[GameBoard::kChameleon].end = piece_width * 1;
+  _piece_texture_coords[GameBoard::kTux].begin = piece_width * 1;
+  _piece_texture_coords[GameBoard::kTux].end = piece_width * 2;
+  _piece_texture_coords[GameBoard::kHat].begin = piece_width * 2;
+  _piece_texture_coords[GameBoard::kHat].end = piece_width * 3;
+  _piece_texture_coords[GameBoard::kWildebeest].begin = piece_width * 3;
+  _piece_texture_coords[GameBoard::kWildebeest].end = piece_width * 4;
 }
 
 void GraphicsEngine::generate_buffers() {

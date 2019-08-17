@@ -17,7 +17,7 @@ GameBoard::~GameBoard() { ; }
 
 void GameBoard::drag_start(CoordinatesF pos) {
   _drag_start_pos = clamp_to_board(pos);
-  tile_at(_drag_start_pos).animation = kSTATIONARY;
+  tile_at(_drag_start_pos).animation = kStationary;
 }
 
 void GameBoard::drag_move(CoordinatesF pos) {
@@ -75,10 +75,10 @@ int GameBoard::drag_release_and_check_move(CoordinatesF pos) {
     if (check_move(_drag_start_pos, destination_tile)) {
       score = execute_move(_drag_start_pos, destination_tile);
     } else {
-      _board[_drag_start_pos.x][_drag_start_pos.y].animation = kRETURN;
+      _board[_drag_start_pos.x][_drag_start_pos.y].animation = kReturn;
     }
   } else {
-    _board[_drag_start_pos.x][_drag_start_pos.y].animation = kRETURN;
+    _board[_drag_start_pos.x][_drag_start_pos.y].animation = kReturn;
   }
 
   return score;
@@ -90,10 +90,10 @@ void GameBoard::physics_tick() {
     column.resize(_board_height);
     for (auto &piece : column) {
       switch (piece.animation) {
-        case kSTATIONARY: {
+        case kStationary: {
           break;
         }
-        case kRETURN: {
+        case kReturn: {
           piece.offset_x *= kReturnSpeed;
           piece.offset_y *= kReturnSpeed;
 
@@ -101,11 +101,11 @@ void GameBoard::physics_tick() {
               fabs(piece.offset_y) < kStationaryThreshold) {
             piece.offset_x = 0.0f;
             piece.offset_y = 0.0f;
-            piece.animation = kSTATIONARY;
+            piece.animation = kStationary;
           }
           break;
         }
-        case kFALL: {
+        case kFall: {
           std::uniform_int_distribution<> random_distribution(0, 1000);
           if (random_distribution(_random_generator) == 1) {
             piece.offset_y = _board_height + 1;
@@ -113,24 +113,24 @@ void GameBoard::physics_tick() {
           piece.offset_y -= kFallSpeed;
           break;
         }
-        case kDELETE:
-        case kDELETE_DONE: {
+        case kDelete:
+        case kDeleteDone: {
           piece.offset_x += 0.2f;
           if (piece.offset_x > kDeleteThreshold) {
-            piece.animation = kDELETE_DONE;
+            piece.animation = kDeleteDone;
             deletes_done = true;
           }
           break;
-          case kEVADE_UP:
+          case kEvadeUp:
             piece.offset_y = std::max(piece.offset_y - 0.1f, -1.0f);
             break;
-          case kEVADE_DOWN:
+          case kEvadeDown:
             piece.offset_y = std::min(piece.offset_y + 0.1f, 1.0f);
             break;
-          case kEVADE_LEFT:
+          case kEvadeLeft:
             piece.offset_x = std::max(piece.offset_x - 0.1f, -1.0f);
             break;
-          case kEVADE_RIGHT:
+          case kEvadeRight:
             piece.offset_x = std::min(piece.offset_x + 0.1f, 1.0f);
             break;
         }
@@ -145,7 +145,7 @@ void GameBoard::physics_tick() {
 void GameBoard::create(int width, int height) {
   _board_width = width;
   _board_height = height;
-  std::uniform_int_distribution<> random_distribution(kTUX, kWILDEBEEST);
+  std::uniform_int_distribution<> random_distribution(kTux, kWildebeest);
 
   _board.resize(_board_width);
   for (auto &column : _board) {
@@ -155,7 +155,7 @@ void GameBoard::create(int width, int height) {
           static_cast<PieceType>(random_distribution(_random_generator));
       piece.offset_x = 0;
       piece.offset_y = 0;
-      piece.animation = kSTATIONARY;
+      piece.animation = kStationary;
     }
   }
 }
@@ -163,7 +163,7 @@ void GameBoard::create(int width, int height) {
 void GameBoard::clear() {
   for (auto &column : _board) {
     for (auto &piece : column) {
-      piece.animation = kFALL;
+      piece.animation = kFall;
     }
   }
 }
@@ -194,18 +194,18 @@ void GameBoard::evade_tile() {
   // evade to the direction from which the dragged tile came
   if (fabs(tile.offset_x) > fabs(tile.offset_y)) {
     if (tile.offset_x > 0) {
-      evade_animation = kEVADE_LEFT;
+      evade_animation = kEvadeLeft;
       evading_tile.x++;
     } else {
-      evade_animation = kEVADE_RIGHT;
+      evade_animation = kEvadeRight;
       evading_tile.x--;
     }
   } else {
     if (tile.offset_y > 0) {
-      evade_animation = kEVADE_UP;
+      evade_animation = kEvadeUp;
       evading_tile.y++;
     } else {
-      evade_animation = kEVADE_DOWN;
+      evade_animation = kEvadeDown;
       evading_tile.y--;
     }
   }
@@ -217,16 +217,16 @@ void GameBoard::evade_tile() {
 
 void GameBoard::evade_cancel(Coordinates pos) {
   if (pos.x >= 1) {
-    _board[pos.x - 1][pos.y].animation = kRETURN;
+    _board[pos.x - 1][pos.y].animation = kReturn;
   }
   if (pos.x < _board_width - 1) {
-    _board[pos.x + 1][pos.y].animation = kRETURN;
+    _board[pos.x + 1][pos.y].animation = kReturn;
   }
   if (pos.y >= 1) {
-    _board[pos.x][pos.y - 1].animation = kRETURN;
+    _board[pos.x][pos.y - 1].animation = kReturn;
   }
   if (pos.y < _board_height - 1) {
-    _board[pos.x][pos.y + 1].animation = kRETURN;
+    _board[pos.x][pos.y + 1].animation = kReturn;
   }
 }
 
@@ -241,13 +241,13 @@ void GameBoard::swap_tile(Coordinates source, Coordinates destination) {
 }
 
 void GameBoard::delete_and_replenish() {
-  std::uniform_int_distribution<> random_distribution(kTUX, kWILDEBEEST);
-  BoardTile new_tile = {0, 0, kTUX, kRETURN, 0};
+  std::uniform_int_distribution<> random_distribution(kTux, kWildebeest);
+  BoardTile new_tile = {0, 0, kTux, kReturn, 0};
 
   for (auto &column : _board) {
     int colum_deletion_count = 0;
     for (auto piece_it = column.begin(); piece_it != column.end();) {
-      if (piece_it->animation == kDELETE_DONE) {
+      if (piece_it->animation == kDeleteDone) {
         ++colum_deletion_count;
 
         piece_it = column.erase(piece_it);
@@ -255,9 +255,9 @@ void GameBoard::delete_and_replenish() {
             static_cast<PieceType>(random_distribution(_random_generator));
         column.push_back(new_tile);
       } else {
-        if (piece_it->animation != kDELETE) {
+        if (piece_it->animation != kDelete) {
           piece_it->offset_y += colum_deletion_count;
-          piece_it->animation = kRETURN;
+          piece_it->animation = kReturn;
         }
         piece_it++;
       }
@@ -313,12 +313,12 @@ int GameBoard::execute_move(Coordinates source, Coordinates destination) {
 
   int score = 0;
   if (source_total_blob_size >= kBlobThreshold) {
-    _board[source.x][source.y].animation = kDELETE;
+    _board[source.x][source.y].animation = kDelete;
     mark_blobs_for_deletion(source_blobs);
     score += source_total_blob_size;
   }
   if (destination_total_blob_size >= kBlobThreshold) {
-    _board[destination.x][destination.y].animation = kDELETE;
+    _board[destination.x][destination.y].animation = kDelete;
     mark_blobs_for_deletion(destination_blobs);
     score += destination_total_blob_size;
   }
@@ -422,7 +422,7 @@ int GameBoard::mark_blobs_for_deletion(std::set<int> marked_labels) {
   for (auto &column : _board) {
     for (auto &tile : column) {
       if (marked_labels.find(tile.blob_label) != marked_labels.end()) {
-        tile.animation = kDELETE;
+        tile.animation = kDelete;
       }
     }
   }
