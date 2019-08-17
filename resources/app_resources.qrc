@@ -3,5 +3,6 @@
     <file>pieces.png</file>
     <file>tux_round.png</file>
     <file>tux_square.png</file>
+    <file>title.png</file>
 </qresource>
 </RCC>

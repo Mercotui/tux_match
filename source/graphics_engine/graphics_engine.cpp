@@ -1,5 +1,4 @@
 // GraphicsEngine.cpp
-
 #include "graphics_engine.hpp"
 
 #include <math.h>
@@ -23,6 +22,7 @@ GraphicsEngine::GraphicsEngine(QWidget *parent)
       _game_width(1),
       _game_height(1),
       _frame_timer(),
+      _tick(0),
       _is_initialized(false),
       _view_width(1),
       _view_height(1),
@@ -30,7 +30,7 @@ GraphicsEngine::GraphicsEngine(QWidget *parent)
       _vertex_count(0) {
   Q_INIT_RESOURCE(GL_shaders);
 
-  _frame_timer.setInterval(20);
+  _frame_timer.setInterval(1.0f / kFPS);
   connect(&_frame_timer, SIGNAL(timeout()), this, SLOT(execute_frame()));
   _frame_timer.start();
 }
@@ -43,6 +43,7 @@ QSize GraphicsEngine::sizeHint() const { return QSize(600, 600); }
 
 void GraphicsEngine::execute_frame() {
   _game_logic.physics_tick();
+  ++_tick;
   update();
 }
 
@@ -108,12 +109,17 @@ void GraphicsEngine::initializeGL() {
 
 void GraphicsEngine::load_textures() {
   _background_texture = new QOpenGLTexture(QImage(":/images/tux_square.png"));
-  _background_texture->setMinificationFilter(QOpenGLTexture::Nearest);
+  _background_texture->setMinificationFilter(QOpenGLTexture::Linear);
   _background_texture->setMagnificationFilter(QOpenGLTexture::Linear);
   _background_texture->setWrapMode(QOpenGLTexture::Repeat);
 
+  _title_texture = new QOpenGLTexture(QImage(":/images/title.png"));
+  _title_texture->setMinificationFilter(QOpenGLTexture::Linear);
+  _title_texture->setMagnificationFilter(QOpenGLTexture::Linear);
+  _title_texture->setWrapMode(QOpenGLTexture::Repeat);
+
   _pieces_texture = new QOpenGLTexture(QImage(":/images/pieces.png"));
-  _pieces_texture->setMinificationFilter(QOpenGLTexture::Nearest);
+  _pieces_texture->setMinificationFilter(QOpenGLTexture::Linear);
   _pieces_texture->setMagnificationFilter(QOpenGLTexture::Linear);
   _pieces_texture->setWrapMode(QOpenGLTexture::Repeat);
 
@@ -217,6 +223,48 @@ void GraphicsEngine::generate_buffers() {
     glUniform1i(tex_uniform, GL_TEXTURE0);
     glBindVertexArray(0);
   }
+
+  // setup title vao
+  {
+    glGenVertexArrays(1, &_title_vao);
+    glGenBuffers(1, &_title_vbo);
+
+    glBindVertexArray(_title_vao);
+    glBindBuffer(GL_ARRAY_BUFFER, _title_vbo);
+
+    int pos_location = _program_title.attributeLocation("pos");
+    glVertexAttribPointer(pos_location, 2, GL_FLOAT, GL_FALSE,
+                          4 * sizeof(float), reinterpret_cast<void *>(0));
+    glEnableVertexAttribArray(pos_location);
+
+    int tex_location = _program_title.attributeLocation("tex");
+    glVertexAttribPointer(tex_location, 2, GL_FLOAT, GL_FALSE,
+                          4 * sizeof(float),
+                          reinterpret_cast<void *>(2 * sizeof(float)));
+    glEnableVertexAttribArray(tex_location);
+
+    // fill buffer with data
+    GLfloat interleaved_title_buff[6 * 4] = {
+        -0.8, 0.2,   // poly 1 a
+        0.0,  0.0,   // poly 1 a tex
+        -0.8, -0.2,  // poly 1 b
+        0.0,  1.0,   // poly 1 b tex
+        0.8,  0.2,   // poly 1 c
+        1.0,  0.0,   // poly 1 c tex
+        0.8,  0.2,   // poly 2 a
+        1.0,  0.0,   // poly 2 a tex
+        -0.8, -0.2,  // poly 2 b
+        0.0,  1.0,   // poly 2 b tex
+        0.8,  -0.2,  // poly 2 c
+        1.0,  1.0    // poly 2 c tex
+    };
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 4, interleaved_title_buff,
+                 GL_STATIC_DRAW);
+
+    // bind texture
+    int tex_uniform = _program_title.uniformLocation("tex_title");
+    glUniform1i(tex_uniform, GL_TEXTURE0);
+  }
   _opengl_mutex.unlock();
 }
 
@@ -266,6 +314,27 @@ void GraphicsEngine::compile_shaders() {
     _program_board.addShaderFromSourceCode(QOpenGLShader::Fragment, fs_source);
     _program_board.link();
   }
+  // title shaders
+  {
+    QFile vs_file(":/GL_shaders/title_vs.glsl");
+    QFile fs_file(":/GL_shaders/title_fs.glsl");
+    vs_file.open(QIODevice::ReadOnly);
+    fs_file.open(QIODevice::ReadOnly);
+    QByteArray vs_source = vs_file.readAll();
+    QByteArray fs_source = fs_file.readAll();
+
+    if (QOpenGLContext::currentContext()->isOpenGLES()) {
+      vs_source.prepend(QByteArrayLiteral("#version 300 es\n"));
+      fs_source.prepend(QByteArrayLiteral("#version 300 es\n"));
+    } else {
+      vs_source.prepend(QByteArrayLiteral("#version 410\n"));
+      fs_source.prepend(QByteArrayLiteral("#version 410\n"));
+    }
+
+    _program_title.addShaderFromSourceCode(QOpenGLShader::Vertex, vs_source);
+    _program_title.addShaderFromSourceCode(QOpenGLShader::Fragment, fs_source);
+    _program_title.link();
+  }
   _opengl_mutex.unlock();
 }
 
@@ -293,13 +362,13 @@ void GraphicsEngine::paintGL() {
       }
       case GameLogic::kPaused: {
         draw_background(false);
-        // draw_title();
+        draw_title();
         break;
       }
       case GameLogic::kLevelComplete: {
         draw_background(true, score);
         draw_playfield();
-        // draw_title();
+        draw_title();
         break;
       }
     }
@@ -431,6 +500,31 @@ void GraphicsEngine::draw_background(bool score_mode, float score_percentage) {
   glDrawArrays(GL_TRIANGLES, 0, 6);
   _background_texture->release();
   _program_background.release();
+  glBindVertexArray(0);
+
+  _opengl_mutex.unlock();
+}
+
+void GraphicsEngine::draw_title() {
+  float hover = sin(static_cast<float>(_tick) / (kTitleHoverPeriod * kFPS)) *
+                kTitleHoverRange;
+  hover += kTitleHoverAt;
+  float angle = sin(static_cast<float>(_tick) / (kTitleRotationPeriod * kFPS)) *
+                kTitleRotationRange;
+
+  QMatrix4x4 transform;
+  transform.translate(0, hover);
+  transform.rotate(angle, 0.0f, 0.0f, 1.0f);
+
+  _opengl_mutex.lock();
+
+  glBindVertexArray(_title_vao);
+  _program_title.bind();
+  _program_title.setUniformValue("transform", transform);
+  _title_texture->bind(GL_TEXTURE0);
+  glDrawArrays(GL_TRIANGLES, 0, 6);
+  _title_texture->release();
+  _program_title.release();
   glBindVertexArray(0);
 
   _opengl_mutex.unlock();
