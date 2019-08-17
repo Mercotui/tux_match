@@ -37,7 +37,7 @@ class GameBoard {
   int drag_release_and_check_move(CoordinatesF pos);
   void physics_tick();
 
-  void create();
+  void create(int width, int height);
   void clear();
   int width();
   int height();

@@ -9,7 +9,7 @@ GameBoard::GameBoard(int width, int height)
       _board_width(width),
       _board_height(height),
       _board_tiles_changed(true) {
-  create();
+  create(width, height);
 }
 
 GameBoard::~GameBoard() { ; }
@@ -141,7 +141,9 @@ void GameBoard::physics_tick() {
   }
 }
 
-void GameBoard::create() {
+void GameBoard::create(int width, int height) {
+  _board_width = width;
+  _board_height = height;
   std::uniform_int_distribution<> random_distribution(kTUX, kWILDEBEEST);
 
   _board.resize(_board_width);
