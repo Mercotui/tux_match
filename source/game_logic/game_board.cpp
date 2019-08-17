@@ -47,7 +47,6 @@ void GameBoard::DragMove(CoordinatesF pos) {
 
 int GameBoard::DragReleaseAndCheckMove(CoordinatesF pos) {
   EvadeCancel(_drag_start_pos);
-
   CoordinatesF clamped_pos = ClampToBoard(pos);
   Coordinates source_tile = _drag_start_pos;
   Coordinates destination_tile = source_tile;
@@ -70,14 +69,8 @@ int GameBoard::DragReleaseAndCheckMove(CoordinatesF pos) {
   }
 
   // check and execute move
-  int score = 0;
-  if (source_tile != destination_tile) {
-    if (CheckMove(_drag_start_pos, destination_tile)) {
-      score = ExecuteMove(_drag_start_pos, destination_tile);
-    } else {
-      _board[_drag_start_pos.x][_drag_start_pos.y].animation = kReturn;
-    }
-  } else {
+  int score = ExecuteMove(_drag_start_pos, destination_tile);
+  if (score == 0) {
     _board[_drag_start_pos.x][_drag_start_pos.y].animation = kReturn;
   }
 
@@ -265,63 +258,33 @@ void GameBoard::DeleteAndReplenish() {
   }
 }
 
-bool GameBoard::CheckMove(Coordinates source, Coordinates destination) {
-  bool move_valid = false;
-  if (_board_tiles_changed) {
-    LabelBlobs();
-    _board_tiles_changed = false;
-  }
-
-  auto source_blobs =
-      GetNeighbourBlobs(source, _board[destination.x][destination.x].type);
-  auto destination_blobs =
-      GetNeighbourBlobs(destination, _board[source.x][source.y].type);
-
-  int source_total_blob_size = 0;
-  for (auto label : source_blobs) {
-    source_total_blob_size += _blob_histogram.at(label);
-  }
-  int destination_total_blob_size = 0;
-  for (auto label : destination_blobs) {
-    destination_total_blob_size += _blob_histogram.at(label);
-  }
-
-  if (source_total_blob_size >= kBlobThreshold) {
-    move_valid = true;
-  } else if (destination_total_blob_size >= kBlobThreshold) {
-    move_valid = true;
-  }
-
-  return move_valid;
-}
-
 int GameBoard::ExecuteMove(Coordinates source, Coordinates destination) {
-  SwapTile(source, destination);
-  _board_tiles_changed = true;
+  // preemptively swap tiles to check if the new possittion is valid
+  std::swap(_board[source.x][source.y], _board[destination.x][destination.y]);
+  LabelBlobs();
+  std::swap(_board[source.x][source.y], _board[destination.x][destination.y]);
 
-  auto source_blobs = GetNeighbourBlobs(source);
-  auto destination_blobs = GetNeighbourBlobs(destination);
-
-  int source_total_blob_size = 1;
-  for (auto label : source_blobs) {
-    source_total_blob_size += _blob_histogram.at(label);
-  }
-  int destination_total_blob_size = 1;
-  for (auto label : destination_blobs) {
-    destination_total_blob_size += _blob_histogram.at(label);
-  }
-
+  // see if this move results in any large enough blobs to be a valid move
   int score = 0;
-  if (source_total_blob_size >= kBlobThreshold) {
-    _board[source.x][source.y].animation = kDelete;
-    MarkBlobsForDeletion(source_blobs);
-    score += source_total_blob_size;
+  int source_blob = _board[source.x][source.y].blob_label;
+  int destination_blob = _board[destination.x][destination.y].blob_label;
+
+  std::set<int> delete_labels;
+  if (_blob_histogram.at(source_blob) >= kBlobThreshold) {
+    score += _blob_histogram.at(source_blob);
+    delete_labels.insert(source_blob);
   }
-  if (destination_total_blob_size >= kBlobThreshold) {
-    _board[destination.x][destination.y].animation = kDelete;
-    MarkBlobsForDeletion(destination_blobs);
-    score += destination_total_blob_size;
+  if (_blob_histogram.at(destination_blob) >= kBlobThreshold) {
+    score += _blob_histogram.at(destination_blob);
+    delete_labels.insert(destination_blob);
   }
+
+  // if the move was valid switch the tiles for good, and mark them for deletion
+  if (score != 0) {
+    SwapTile(source, destination);
+    MarkBlobsForDeletion(delete_labels);
+  }
+
   return score;
 }
 
@@ -403,7 +366,7 @@ std::set<int> GameBoard::GetPastNeighbourBlobs(Coordinates pos) {
 }
 
 std::set<int> GameBoard::GetPastNeighbourBlobs(Coordinates pos,
-                                                  PieceType type) {
+                                               PieceType type) {
   std::set<int> ret;
   if (pos.x > 0) {
     if (_board[pos.x - 1][pos.y].type == type) {

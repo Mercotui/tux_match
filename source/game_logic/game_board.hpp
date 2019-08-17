@@ -58,7 +58,6 @@ class GameBoard {
   void EvadeCancel(Coordinates pos);
   void SwapTile(Coordinates source, Coordinates destination);
   void DeleteAndReplenish();
-  bool CheckMove(Coordinates source, Coordinates destination);
   int ExecuteMove(Coordinates source, Coordinates destination);
   void LabelBlobs();
   std::set<int> GetNeighbourBlobs(Coordinates pos);
