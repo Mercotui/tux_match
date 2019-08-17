@@ -1,6 +1,9 @@
 [![License: MIT](https://img.shields.io/github/license/mercotui/tux_match?style=flat-square)](https://opensource.org/licenses/MIT)
 # tux_match
-A match three game
+A match three game.
+
+ [Watch demo on YouTube](https://www.youtube.com/watch?v=-3QSgVSLt3M)
+
 
 ## Assets
 
