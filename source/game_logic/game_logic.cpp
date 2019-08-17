@@ -11,9 +11,25 @@ GameLogic::GameLogic() : _board(9, 9), _state(kPaused), _goal(50), _score(0) {
 GameLogic::~GameLogic() { ; }
 
 void GameLogic::mouse_click(float x, float y) {
-  _board.drag_start({x, y});
+  if (_state == kPlaying) {
+    _board.drag_start({x, y});
+  }
+}
+
+void GameLogic::mouse_move(float x, float y) {
+  if (_state == kPlaying) {
+    _board.drag_move({x, y});
+  }
+}
+
+void GameLogic::mouse_release(float x, float y) {
   switch (_state) {
     case kPlaying: {
+      _score += _board.drag_release_and_check_move({x, y});
+      if (_score >= _goal) {
+        _board.clear();
+        _state = kLevelComplete;
+      }
       break;
     }
     case kPaused: {
@@ -27,16 +43,6 @@ void GameLogic::mouse_click(float x, float y) {
       _state = kPlaying;
       break;
     }
-  }
-}
-
-void GameLogic::mouse_move(float x, float y) { _board.drag_move({x, y}); }
-
-void GameLogic::mouse_release(float x, float y) {
-  _score += _board.drag_release_and_check_move({x, y});
-  if (_score >= _goal) {
-    _board.clear();
-    _state = kLevelComplete;
   }
 }
 
