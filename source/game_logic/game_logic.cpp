@@ -25,7 +25,7 @@ void GameLogic::MouseRelease(float x, float y) {
     case kPlaying: {
       _score += _board.DragReleaseAndCheckMove({x, y});
       if (_score >= _goal) {
-        _board.clear();
+        _board.Clear();
         _state = kLevelComplete;
       }
       break;
@@ -43,11 +43,3 @@ void GameLogic::MouseRelease(float x, float y) {
     }
   }
 }
-
-const GameBoard &GameLogic::board() { return _board; }
-
-int GameLogic::goal() { return _goal; }
-
-int GameLogic::score() { return _score; }
-
-GameLogic::GameState GameLogic::state() { return _state; }

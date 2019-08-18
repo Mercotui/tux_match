@@ -153,20 +153,12 @@ void GameBoard::Create(int width, int height) {
   }
 }
 
-void GameBoard::clear() {
+void GameBoard::Clear() {
   for (auto &column : _board) {
     for (auto &piece : column) {
       piece.animation = kFall;
     }
   }
-}
-
-int GameBoard::width() { return _board_width; }
-
-int GameBoard::height() { return _board_height; }
-
-const std::vector<std::vector<GameBoard::BoardTile>> &GameBoard::board() {
-  return _board;
 }
 
 CoordinatesF GameBoard::ClampToBoard(CoordinatesF pos) {

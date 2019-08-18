@@ -20,13 +20,12 @@ class GameLogic {
   void MouseRelease(float x, float y);
   void PhysicsTick() { _board.PhysicsTick(); }
 
-  int width() { return _board.width(); }
-  int height() { return _board.height(); }
-  const GameBoard &board();
-
-  int score();
-  int goal();
-  GameState state();
+  int width() const { return _board.width(); }
+  int height() const { return _board.height(); }
+  const GameBoard &board() const { return _board; }
+  int goal() const { return _goal; }
+  int score() const { return _score; }
+  GameState state() const { return _state; }
 
  private:
   GameBoard _board;

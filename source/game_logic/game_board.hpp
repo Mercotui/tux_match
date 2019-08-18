@@ -39,10 +39,11 @@ class GameBoard {
   void PhysicsTick();
 
   void Create(int width, int height);
-  void clear();
-  int width();
-  int height();
-  const std::vector<std::vector<BoardTile>> &board();
+  void Clear();
+
+  int width() const { return _board_width; }
+  int height() const { return _board_height; }
+  const std::vector<std::vector<BoardTile>> &board() const { return _board; };
 
  private:
   static constexpr float kEvadeThreshold = 0.9f;

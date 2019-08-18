@@ -2,8 +2,8 @@ find_package(Qt5 REQUIRED Core Gui Widgets OpenGL)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-set( graphics_engine_SOURCES graphics_engine.cpp )
-set( graphics_engine_HEADERS graphics_engine.hpp )
+set( graphics_engine_SOURCES graphics_engine.cpp board_renderer.cpp )
+set( graphics_engine_HEADERS graphics_engine.hpp board_renderer.hpp )
 qt5_wrap_cpp(graphics_engine_MOC ${graphics_engine_HEADERS})
 qt5_add_resources(graphics_engine_RRC shaders/GL_shaders.qrc)
 
