@@ -26,7 +26,7 @@ GraphicsEngine::GraphicsEngine(QWidget *parent)
       _opengl_mutex(QMutex::Recursive) {
   Q_INIT_RESOURCE(GL_shaders);
 
-  _frame_timer.setInterval(1.0f / kFPS);
+  _frame_timer.setInterval(1000.0f / kFPS);
   connect(&_frame_timer, SIGNAL(timeout()), this, SLOT(ExecuteFrame()));
   _frame_timer.start();
 }
