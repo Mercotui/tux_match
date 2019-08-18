@@ -38,7 +38,7 @@ int main(int argc, char *argv[]) {
   // Create the main app window
   GraphicsEngine window;
 
-  window.setWindowTitle("Tux Match!");
+  window.setTitle("Tux Match!");
 
   window.show();
   // QQmlApplicationEngine engine;

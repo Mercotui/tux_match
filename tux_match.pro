@@ -4,7 +4,7 @@ QT       += core gui widgets opengl
 # Set up application details
 TARGET = tux_match
 TEMPLATE = app
-CONFIG += c++1z
+CONFIG += c++1z debug
 
 # add include dirs
 INCLUDEPATH += source

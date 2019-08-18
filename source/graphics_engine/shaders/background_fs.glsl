@@ -28,7 +28,7 @@ void main()
     vec4 tex_sample = texture(u_tex_background, vtf_texcoord);
     vec2 range = vec2(0.0,1.0);
     if (vtf_score_mode == 1){
-        if (vtf_texcoord.y < (1 - vtf_score)) {
+        if (vtf_texcoord.y < (1.0 - vtf_score)) {
           float grey = dot(tex_sample.rgb, vec3(0.299, 0.587, 0.114));
           grey = map(grey, 0.0, 1.0, 0.2, 0.8);
           frag_color = vec4(grey, grey, grey, 1.0);

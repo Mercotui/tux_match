@@ -13,8 +13,8 @@
 #include <GLES3/gl3.h>
 #endif
 
-GraphicsEngine::GraphicsEngine(QWidget *parent)
-    : QOpenGLWidget(parent),
+GraphicsEngine::GraphicsEngine()
+    : QOpenGLWindow(),
       _game_logic(),
       _game_width(1),
       _game_height(1),
@@ -91,7 +91,7 @@ void GraphicsEngine::initializeGL() {
   initializeOpenGLFunctions();
 
   glClearColor(1, 0.5, 1, 1.0f);
-  glEnable(GL_TEXTURE_2D);
+  glEnable(GL_TEXTURE0);
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -130,6 +130,7 @@ void GraphicsEngine::GenerateBuffers() {
     glBindVertexArray(_background_vao);
     glBindBuffer(GL_ARRAY_BUFFER, _background_vbo);
 
+    _program_background.bind();
     int pos_location = _program_background.attributeLocation("position");
     glVertexAttribPointer(pos_location, 2, GL_FLOAT, GL_FALSE,
                           4 * sizeof(float), reinterpret_cast<void *>(0));
@@ -162,6 +163,7 @@ void GraphicsEngine::GenerateBuffers() {
     // bind texture
     int tex_uniform = _program_background.uniformLocation("u_tex_background");
     glUniform1i(tex_uniform, GL_TEXTURE0);
+    _program_background.release();
   }
   // setup title vao
   {
@@ -171,6 +173,7 @@ void GraphicsEngine::GenerateBuffers() {
     glBindVertexArray(_title_vao);
     glBindBuffer(GL_ARRAY_BUFFER, _title_vbo);
 
+    _program_title.bind();
     int pos_location = _program_title.attributeLocation("pos");
     glVertexAttribPointer(pos_location, 2, GL_FLOAT, GL_FALSE,
                           4 * sizeof(float), reinterpret_cast<void *>(0));
@@ -203,6 +206,7 @@ void GraphicsEngine::GenerateBuffers() {
     // bind texture
     int tex_uniform = _program_title.uniformLocation("tex_title");
     glUniform1i(tex_uniform, GL_TEXTURE0);
+    _program_title.release();
   }
   _opengl_mutex.unlock();
 }

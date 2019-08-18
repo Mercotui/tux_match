@@ -67,6 +67,7 @@ void BoardRenderer::GenerateBuffers() {
   // vertex buffer
   glBindBuffer(GL_ARRAY_BUFFER, _board_vertex_vbo);
 
+  _program_board.bind();
   int pos_location = _program_board.attributeLocation("position");
   glVertexAttribPointer(pos_location, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float),
                         reinterpret_cast<void *>(0));
@@ -80,25 +81,26 @@ void BoardRenderer::GenerateBuffers() {
   void *offset_offset = reinterpret_cast<void *>((sizeof(float) * 2));
   void *is_gold_offset = reinterpret_cast<void *>((sizeof(float) * 5));
 
-  int tex_location = _program_board.attributeLocation("tex");
-  glVertexAttribPointer(tex_location, 2, GL_FLOAT, GL_FALSE,
-                        buffer_element_size, tex_offset);
-  glEnableVertexAttribArray(tex_location);
+  // int tex_location = _program_board.attributeLocation("tex");
+  // glVertexAttribPointer(tex_location, 2, GL_FLOAT, GL_FALSE,
+  //                       buffer_element_size, tex_offset);
+  // glEnableVertexAttribArray(tex_location);
 
-  int offset_location = _program_board.attributeLocation("offset");
-  glVertexAttribPointer(offset_location, 3, GL_FLOAT, GL_FALSE,
-                        buffer_element_size, offset_offset);
-  glEnableVertexAttribArray(offset_location);
-
-  int is_gold_location = _program_board.attributeLocation("is_gold");
-  glVertexAttribPointer(is_gold_location, 1, GL_FLOAT, GL_FALSE,
-                        buffer_element_size, is_gold_offset);
-  glEnableVertexAttribArray(offset_location);
+  // int offset_location = _program_board.attributeLocation("offset");
+  // glVertexAttribPointer(offset_location, 3, GL_FLOAT, GL_FALSE,
+  //                       buffer_element_size, offset_offset);
+  // glEnableVertexAttribArray(offset_location);
+  //
+  // int is_gold_location = _program_board.attributeLocation("is_gold");
+  // glVertexAttribPointer(is_gold_location, 1, GL_FLOAT, GL_FALSE,
+  //                       buffer_element_size, is_gold_offset);
+  // glEnableVertexAttribArray(is_gold_location);
 
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 
   int tex_uniform = _program_board.uniformLocation("u_tex_background");
-  glUniform1i(tex_uniform, GL_TEXTURE0);
+  glUniform1i(tex_uniform, 0);
+  _program_board.release();
   glBindVertexArray(0);
 }
 

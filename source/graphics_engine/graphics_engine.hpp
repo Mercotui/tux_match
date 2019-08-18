@@ -5,7 +5,7 @@
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLShaderProgram>
 #include <QOpenGLTexture>
-#include <QOpenGLWidget>
+#include <QOpenGLWindow>
 #include <QPoint>
 #include <QString>
 #include <QTimer>
@@ -15,17 +15,17 @@
 #include "board_renderer.hpp"
 #include "game_logic/game_logic.hpp"
 
-class GraphicsEngine final : public QOpenGLWidget,
+class GraphicsEngine final : public QOpenGLWindow,
                              protected QOpenGLExtraFunctions {
   Q_OBJECT
  public:
-  explicit GraphicsEngine(QWidget *parent = 0);
+  explicit GraphicsEngine();
   ~GraphicsEngine();
 
-  // QOpenGLWidget reimplemented functions
-  void initializeGL();
-  void resizeGL(int w, int h);
-  void paintGL();
+  // QOpenGLWindow reimplemented functions
+  void initializeGL() override;
+  void resizeGL(int w, int h) override;
+  void paintGL() override;
   QSize minimumSizeHint() const;
   QSize sizeHint() const;
 
