@@ -81,16 +81,16 @@ void BoardRenderer::GenerateBuffers() {
   void *offset_offset = reinterpret_cast<void *>((sizeof(float) * 2));
   void *is_gold_offset = reinterpret_cast<void *>((sizeof(float) * 5));
 
-  // int tex_location = _program_board.attributeLocation("tex");
-  // glVertexAttribPointer(tex_location, 2, GL_FLOAT, GL_FALSE,
-  //                       buffer_element_size, tex_offset);
-  // glEnableVertexAttribArray(tex_location);
+  int tex_location = _program_board.attributeLocation("tex");
+  glVertexAttribPointer(tex_location, 2, GL_FLOAT, GL_FALSE,
+                        buffer_element_size, tex_offset);
+  glEnableVertexAttribArray(tex_location);
 
-  // int offset_location = _program_board.attributeLocation("offset");
-  // glVertexAttribPointer(offset_location, 3, GL_FLOAT, GL_FALSE,
-  //                       buffer_element_size, offset_offset);
-  // glEnableVertexAttribArray(offset_location);
-  //
+  int offset_location = _program_board.attributeLocation("offset");
+  glVertexAttribPointer(offset_location, 3, GL_FLOAT, GL_FALSE,
+                        buffer_element_size, offset_offset);
+  glEnableVertexAttribArray(offset_location);
+
   // int is_gold_location = _program_board.attributeLocation("is_gold");
   // glVertexAttribPointer(is_gold_location, 1, GL_FLOAT, GL_FALSE,
   //                       buffer_element_size, is_gold_offset);
