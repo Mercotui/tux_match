@@ -1,6 +1,5 @@
 #include <QApplication>
 #include <QCommandLineParser>
-#include <QQmlApplicationEngine>
 #include <QSurfaceFormat>
 
 #include <QDirIterator>
