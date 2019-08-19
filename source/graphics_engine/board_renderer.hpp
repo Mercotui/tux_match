@@ -1,6 +1,7 @@
 #ifndef SOURCE_GRAPHICS_ENGINE_BOARD_RENDERER_HPP_
 #define SOURCE_GRAPHICS_ENGINE_BOARD_RENDERER_HPP_
 
+#include <QMatrix4x4>
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLShaderProgram>
 #include <QOpenGLTexture>
@@ -22,6 +23,7 @@ class BoardRenderer : public QObject, protected QOpenGLExtraFunctions {
 
   void Init();
   void Render(const GameBoard& board);
+  void SetProjection(const QMatrix4x4& projection_matrix);
 
  private:
   float Remap(float min_old, float max_old, float min_new, float max_new,
@@ -34,6 +36,7 @@ class BoardRenderer : public QObject, protected QOpenGLExtraFunctions {
 
   int _width;
   int _height;
+  QMatrix4x4 _projection_matrix;
   GLuint _board_vao;
   GLuint _board_vertex_vbo;
   GLuint _board_params_vbo;

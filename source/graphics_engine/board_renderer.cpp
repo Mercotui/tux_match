@@ -27,11 +27,16 @@ void BoardRenderer::Render(const GameBoard &board) {
 
   glBindVertexArray(_board_vao);
   _program_board.bind();
+  _program_board.setUniformValue("transform", _projection_matrix);
   _pieces_texture->bind(GL_TEXTURE0);
   glDrawArrays(GL_TRIANGLES, 0, _vertex_count);
   _pieces_texture->release();
   _program_board.release();
   glBindVertexArray(0);
+}
+
+void BoardRenderer::SetProjection(const QMatrix4x4 &projection_matrix) {
+  _projection_matrix = projection_matrix;
 }
 
 float BoardRenderer::Remap(float min_old, float max_old, float min_new,

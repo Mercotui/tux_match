@@ -90,7 +90,7 @@ void GraphicsEngine::initializeGL() {
   _opengl_mutex.lock();
   initializeOpenGLFunctions();
 
-  glClearColor(1, 0.5, 1, 1.0f);
+  glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
   glEnable(GL_TEXTURE0);
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -99,8 +99,6 @@ void GraphicsEngine::initializeGL() {
   CompileShaders();
   GenerateBuffers();
   _board_renderer.Init();
-  // setup projection matrix
-  _mat_projection.ortho(-2.0f, +2.0f, -2.0f, +2.0f, 1.0f, 25.0f);
 
   _is_initialized = true;
   _opengl_mutex.unlock();
@@ -266,6 +264,20 @@ void GraphicsEngine::resizeGL(int width, int height) {
   _view_height = height;
   glViewport(0, 0, width, height);
 
+  // ensure squareness
+  float square_factor = (float)width / (float)height;
+  _projection_matrix.setToIdentity();
+  if (square_factor > 1.0f) {
+    // wide viewport, use full height
+    _projection_matrix.ortho(-square_factor, square_factor, -1.0f, 1.0f, 0.0f,
+                             10.0f);
+  } else {
+    // tall viewport, use full width
+    _projection_matrix.ortho(-1.0f, 1.0f, -1.0f / square_factor,
+                             1.0f / square_factor, 0.0f, 10.0f);
+  }
+
+  _board_renderer.SetProjection(_projection_matrix);
   _opengl_mutex.unlock();
 }
 
@@ -304,6 +316,7 @@ void GraphicsEngine::DrawBackground(bool score_mode, float score_percentage) {
 
   glBindVertexArray(_background_vao);
   _program_background.bind();
+  _program_background.setUniformValue("transform", _projection_matrix);
   _program_background.setUniformValue("score_mode", score_mode);
   _program_background.setUniformValue("score", score_percentage);
   _background_texture->bind(GL_TEXTURE0);
@@ -330,7 +343,7 @@ void GraphicsEngine::DrawTitle() {
 
   glBindVertexArray(_title_vao);
   _program_title.bind();
-  _program_title.setUniformValue("transform", transform);
+  _program_title.setUniformValue("transform", _projection_matrix * transform);
   _title_texture->bind(GL_TEXTURE0);
   glDrawArrays(GL_TRIANGLES, 0, 6);
   _title_texture->release();

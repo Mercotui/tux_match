@@ -67,7 +67,7 @@ class GraphicsEngine final : public QOpenGLWindow,
   int _view_width;
   int _view_height;
   QMutex _opengl_mutex;
-  QMatrix4x4 _mat_projection;
+  QMatrix4x4 _projection_matrix;
   GLuint _background_vao;
   GLuint _background_vbo;
   GLuint _title_vao;
