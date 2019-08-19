@@ -9,6 +9,8 @@
 #include <QVector2D>
 #include <QVector3D>
 
+#include <iostream>
+
 #ifdef ANDROID
 #include <GLES3/gl3.h>
 #endif
@@ -71,19 +73,30 @@ float GraphicsEngine::Remap(float min_old, float max_old, float min_new,
 }
 
 QPointF GraphicsEngine::CoordsWindowToGame(QPoint mouse_pos) {
+  // convert to square window space
+  float mouse_x = mouse_pos.x();
+  float mouse_y = mouse_pos.y();
+  int min_view_size = std::min(_view_width, _view_height);
+  float x_square_centering_offset = ((_view_width - min_view_size) / 2);
+  float y_square_centering_offset = ((_view_height - min_view_size) / 2);
+  float square_mouse_x = mouse_x - x_square_centering_offset;
+  float square_mouse_y = mouse_y - y_square_centering_offset;
+
+  // convert from square window to game space, including inverted y axis
   _game_width = _game_logic.width();
   _game_height = _game_logic.height();
 
   int max_size = std::max(_game_width, _game_height);
-  float mouse_x = Remap(0, _view_width, 0, max_size, mouse_pos.x());
-  float mouse_y = max_size - Remap(0, _view_height, 0, max_size, mouse_pos.y());
+  float game_mouse_x = Remap(0, min_view_size, 0, max_size, square_mouse_x);
+  float game_mouse_y =
+      max_size - Remap(0, min_view_size, 0, max_size, square_mouse_y);
 
   float x_centering_offset = ((max_size - _game_width) / 2);
   float y_centering_offset = ((max_size - _game_height) / 2);
-  mouse_x -= x_centering_offset;
-  mouse_y -= y_centering_offset;
+  game_mouse_x -= x_centering_offset;
+  game_mouse_y -= y_centering_offset;
 
-  return QPointF(mouse_x, mouse_y);
+  return QPointF(game_mouse_x, game_mouse_y);
 }
 
 void GraphicsEngine::initializeGL() {
@@ -265,16 +278,16 @@ void GraphicsEngine::resizeGL(int width, int height) {
   glViewport(0, 0, width, height);
 
   // ensure squareness
-  float square_factor = (float)width / (float)height;
+  float aspect_ratio = (float)width / (float)height;
   _projection_matrix.setToIdentity();
-  if (square_factor > 1.0f) {
+  if (aspect_ratio > 1.0f) {
     // wide viewport, use full height
-    _projection_matrix.ortho(-square_factor, square_factor, -1.0f, 1.0f, 0.0f,
+    _projection_matrix.ortho(-aspect_ratio, aspect_ratio, -1.0f, 1.0f, 0.0f,
                              10.0f);
   } else {
     // tall viewport, use full width
-    _projection_matrix.ortho(-1.0f, 1.0f, -1.0f / square_factor,
-                             1.0f / square_factor, 0.0f, 10.0f);
+    _projection_matrix.ortho(-1.0f, 1.0f, -1.0f / aspect_ratio,
+                             1.0f / aspect_ratio, 0.0f, 10.0f);
   }
 
   _board_renderer.SetProjection(_projection_matrix);
