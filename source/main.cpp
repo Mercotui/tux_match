@@ -1,8 +1,8 @@
 #include <QApplication>
 #include <QCommandLineParser>
-#include <QSurfaceFormat>
-
+#include <QDesktopWidget>
 #include <QDirIterator>
+#include <QSurfaceFormat>
 #include <iostream>
 
 #include "graphics_engine/graphics_engine.hpp"
@@ -39,10 +39,10 @@ int main(int argc, char *argv[]) {
   GraphicsEngine window;
 
   window.setTitle("Tux Match!");
-
+  QSize available_size = QDesktopWidget().availableGeometry().size() * 0.7;
+  int min_dimension = std::min(available_size.width(), available_size.height());
+  window.resize(min_dimension, min_dimension);
   window.show();
-  // QQmlApplicationEngine engine;
-  // engine.load (QUrl (QStringLiteral ("qrc:/main.qml")));
 
   return app.exec();
 }
