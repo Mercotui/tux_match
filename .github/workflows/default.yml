@@ -1,0 +1,26 @@
+name: Build
+
+on: [push]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        compiler:
+            - c: gcc
+              cpp: g++
+            - c: clang
+              cpp: clang++
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: setup
+      run: sudo apt-get install qtbase5-dev qtdeclarative5-dev libqt5opengl5-dev
+    - name: cmake
+      run: cmake .
+      env:
+        QTDIR: /usr/lib/x86_64-linux-gnu/cmake/Qt5
+        CC: ${{ matrix.compiler.c }}
+        CXX: ${{ matrix.compiler.cpp }}
+    - name: make
+      run: make
