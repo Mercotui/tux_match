@@ -7,7 +7,6 @@ set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
 
 # options
 option(ANDROID "switch to android build" OFF)
-option(TESTS "Enable ARticated tests" OFF)
 
 if(ANDROID)
   set(ANDROID_NATIVE_API_LEVEL "27" CACHE STRING
@@ -17,11 +16,3 @@ endif(ANDROID)
 
 include_directories(source)
 add_subdirectory(source)
-
-if(TESTS)
-    add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --force-new-ctest-process --output-on-failure)
-    add_subdirectory(googletest)
-    include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
-    enable_testing()
-    add_subdirectory(tests)
-endif(TESTS)
