@@ -15,7 +15,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: setup
-      run: sudo apt-get install qtbase5-dev libqt5opengl5-dev
+      run: sudo apt-get install qtbase5-dev qtmultimedia5-dev libqt5opengl5-dev
     - name: cmake
       run: cmake . -DCMAKE_BUILD_TYPE=Debug -DTESTS=ON
       env:
