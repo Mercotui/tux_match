@@ -6,7 +6,7 @@ set(CMAKE_VERBOSE_MAKEFILE OFF)
 ################################################################################
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
-find_package(Qt5 REQUIRED Core Gui Quick Widgets Multimedia )
+find_package(Qt5 REQUIRED Core Gui Quick Widgets )
 
 ################################################################################
 # tux_match app
@@ -27,7 +27,7 @@ if(ANDROID)
 else()
     add_executable(tux_match_app ${tux_match_app_SOURCES} ${tux_match_app_HEADERS} ${tux_match_app_rcc})
 endif()
-target_link_libraries(tux_match_app graphics_engine Qt5::Core Qt5::Gui Qt5::Quick Qt5::Widgets Qt5::Multimedia )
+target_link_libraries(tux_match_app graphics_engine Qt5::Core Qt5::Gui Qt5::Quick Qt5::Widgets )
 set_target_properties( tux_match_app PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_PROJECT_BINARY_DIR}")
 ################################################################################
 # Android apk creation
